@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MAB-Music – Buat musik dari teks</title>
+  <title>MAB-Music – Buat lagu dari teks dan lirik</title>
 
   <!-- Font: Bricolage Grotesque (judul) + DM Sans (isi) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,7 +40,7 @@
     input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#ff7a59; border:3px solid #0e0d14; cursor:pointer; }
     input[type=range]::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:#ff7a59; border:3px solid #0e0d14; cursor:pointer; }
 
-    /* Gelombang suara yang bergerak saat loading (satu-satunya animasi "hias" di halaman) */
+    /* Gelombang suara yang bergerak saat loading */
     .wave { display:inline-flex; align-items:center; gap:3px; height:18px; }
     .wave span { width:3px; border-radius:2px; background:currentColor; height:30%; animation:bar 0.9s ease-in-out infinite; }
     .wave span:nth-child(2){ animation-delay:.1s } .wave span:nth-child(3){ animation-delay:.2s }
@@ -68,7 +68,7 @@
     </div>
 
     <nav class="px-3 flex-1 space-y-1" aria-label="Menu utama">
-      <button data-nav="create" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium">Buat musik</button>
+      <button data-nav="create" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium">Buat lagu</button>
       <button data-nav="library" class="nav-btn w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium">
         Hasil saya <span id="libCount" class="ml-1 text-xs text-mist">(0)</span>
       </button>
@@ -76,7 +76,7 @@
     </nav>
 
     <p class="px-5 py-4 text-xs text-mist leading-relaxed">
-      Model: MusicGen Small.<br />Hasil hanya tersimpan selama halaman ini terbuka.
+      Model: ACE-Step 1.5.<br />Hasil hanya tersimpan selama halaman ini terbuka. Unduh lagu yang ingin disimpan.
     </p>
   </aside>
   <div id="overlay" class="fixed inset-0 z-20 bg-black/60 hidden md:hidden"></div>
@@ -104,28 +104,58 @@
 
     <main class="flex-1 px-4 md:px-10 py-8 max-w-4xl w-full mx-auto">
 
-      <!-- ---------- Tampilan: BUAT MUSIK ---------- -->
+      <!-- ---------- Tampilan: BUAT LAGU ---------- -->
       <section id="view-create">
-        <h1 class="font-display font-extrabold text-3xl md:text-4xl tracking-tight">Ceritakan musik yang kamu bayangkan</h1>
-        <p class="text-mist mt-2 mb-6">Tulis suasana, genre, dan instrumennya. Bahasa Inggris memberi hasil terbaik.</p>
+        <h1 class="font-display font-extrabold text-3xl md:text-4xl tracking-tight">Ceritakan lagu yang kamu bayangkan</h1>
+        <p class="text-mist mt-2 mb-6">Tulis gaya musik dan penyanyinya, lalu liriknya. Bahasa Inggris untuk gaya musik memberi hasil terbaik.</p>
 
         <div class="bg-panel border border-edge rounded-2xl p-5">
-          <label for="prompt" class="text-sm font-medium">Deskripsi musik</label>
-          <textarea id="prompt" rows="4" maxlength="500"
-            placeholder="Contoh: calm lo-fi hip hop beat with soft piano, vinyl crackle, rainy night"
+
+          <!-- Gaya musik & penyanyi -->
+          <label for="prompt" class="text-sm font-medium">Gaya musik &amp; penyanyi</label>
+          <textarea id="prompt" rows="3" maxlength="500"
+            placeholder="Contoh: warm pop ballad, soft female vocal, piano and strings, emotional"
             class="mt-2 w-full bg-ink border border-edge rounded-xl px-4 py-3 text-base resize-y placeholder:text-mist/60"></textarea>
 
           <div class="mt-3 flex flex-wrap gap-2" id="chips">
-            <!-- chip contoh prompt diisi oleh JavaScript -->
+            <!-- chip contoh diisi oleh JavaScript -->
           </div>
 
+          <!-- Lirik -->
+          <label for="lyrics" class="text-sm font-medium mt-5 block">Lirik lagu</label>
+          <textarea id="lyrics" rows="8" maxlength="4000"
+            placeholder="[Verse 1]&#10;Tulis liriknya di sini...&#10;&#10;[Chorus]&#10;Bagian reff..."
+            class="mt-2 w-full bg-ink border border-edge rounded-xl px-4 py-3 text-base resize-y placeholder:text-mist/60 disabled:opacity-40"></textarea>
+          <p class="text-xs text-mist mt-1">Penanda seperti [Verse], [Chorus], dan [Bridge] membantu AI menyusun lagu. Lagu panjang butuh lirik yang panjang juga.</p>
+
+          <!-- Bahasa vokal & instrumental -->
+          <div class="mt-3 flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2">
+              <label for="lang" class="text-sm">Bahasa vokal</label>
+              <select id="lang" class="bg-ink border border-edge rounded-lg px-3 py-2 text-sm">
+                <option value="en">Inggris</option>
+                <option value="id">Indonesia</option>
+                <option value="ja">Jepang</option>
+                <option value="zh">Mandarin</option>
+                <option value="ko">Korea</option>
+                <option value="unknown">Otomatis</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 text-sm">
+              <input id="instrumental" type="checkbox" class="accent-orange-400" />
+              Tanpa vokal (instrumental)
+            </label>
+          </div>
+
+          <!-- Durasi -->
           <div class="mt-6">
             <div class="flex items-center justify-between">
               <label for="duration" class="text-sm font-medium">Durasi lagu</label>
-              <span class="text-sm"><span id="durVal" class="font-semibold text-ember">15</span> detik</span>
+              <span id="durVal" class="text-sm font-semibold text-ember">1:00</span>
             </div>
-            <input id="duration" type="range" min="10" max="30" step="1" value="15" class="w-full mt-3" />
-            <div class="flex justify-between text-xs text-mist mt-1"><span>10 dtk</span><span>30 dtk</span></div>
+            <input id="duration" type="range" min="30" max="480" step="10" value="60" class="w-full mt-3" />
+            <div class="flex justify-between text-xs text-mist mt-1"><span>0:30</span><span>8:00</span></div>
+            <p class="text-xs text-mist mt-2">Makin panjang lagunya, makin lama pembuatannya. Coba 1 menit dulu.</p>
           </div>
 
           <button id="genBtn"
@@ -140,14 +170,14 @@
           <p id="error" class="mt-2 text-sm text-red-300 bg-red-950/40 border border-red-900 rounded-lg px-3 py-2 hidden" role="alert"></p>
         </div>
 
-        <!-- Pemutar audio (terisi otomatis setelah musik jadi) -->
+        <!-- Pemutar audio (terisi otomatis setelah lagu jadi) -->
         <div class="bg-panel border border-edge rounded-2xl p-5 mt-5">
           <h2 class="font-display font-semibold text-lg">Hasil</h2>
-          <p id="emptyNote" class="text-sm text-mist mt-1">Belum ada musik. Tulis deskripsi di atas, lalu tekan Generate Music.</p>
+          <p id="emptyNote" class="text-sm text-mist mt-1">Belum ada lagu. Isi gaya musik dan lirik di atas, lalu tekan Generate Music.</p>
           <div id="player" class="hidden mt-3">
             <p id="playerTitle" class="text-sm text-mist mb-2 truncate"></p>
             <audio id="audio" controls></audio>
-            <a id="download" class="inline-block mt-3 text-sm text-lilac underline underline-offset-4" download="mab-music.wav">Unduh file .wav</a>
+            <a id="download" class="inline-block mt-3 text-sm text-lilac underline underline-offset-4" download="mab-music.mp3">Unduh file .mp3</a>
           </div>
         </div>
       </section>
@@ -157,17 +187,18 @@
         <h1 class="font-display font-extrabold text-3xl tracking-tight">Hasil saya</h1>
         <p class="text-mist mt-2 mb-6">Semua lagu yang kamu buat sejak halaman ini dibuka. Muat ulang halaman = daftar ini kosong.</p>
         <div id="libList" class="space-y-4"></div>
-        <p id="libEmpty" class="text-mist text-sm">Belum ada lagu. Buat satu di menu Buat musik.</p>
+        <p id="libEmpty" class="text-mist text-sm">Belum ada lagu. Buat satu di menu Buat lagu.</p>
       </section>
 
       <!-- ---------- Tampilan: CARA PAKAI ---------- -->
       <section id="view-help" class="hidden-view">
         <h1 class="font-display font-extrabold text-3xl tracking-tight">Cara pakai</h1>
         <ol class="mt-6 space-y-4 text-[15px] leading-relaxed list-decimal list-inside">
-          <li>Buka Google Colab, jalankan backend MAB-Music sampai muncul alamat HTTPS.</li>
+          <li>Buka Google Colab, jalankan backend MAB-Music Vokal sampai muncul alamat HTTPS.</li>
           <li>Salin alamat itu, tempel di kolom <b>URL API Backend</b> di pojok atas, lalu tekan <b>Tes koneksi</b>.</li>
-          <li>Titik berubah hijau? Berarti siap. Tulis deskripsi musik dan tekan <b>Generate Music</b>.</li>
-          <li>Tunggu sekitar 20 detik sampai 2 menit. Lagu muncul di pemutar dan bisa diunduh.</li>
+          <li>Titik berubah hijau? Berarti siap. Isi gaya musik dan lirik, atur durasi, lalu tekan <b>Generate Music</b>.</li>
+          <li>Tunggu sampai lagu selesai (1 menit lagu bisa butuh beberapa menit, lagu panjang lebih lama). Jangan tutup tab Colab.</li>
+          <li>Lagu muncul di pemutar dan bisa diunduh sebagai .mp3.</li>
         </ol>
         <p class="mt-6 text-sm text-mist">Alamat Colab berubah setiap kali dinyalakan ulang, jadi tempel yang baru. Alamat terakhir diingat browser ini.</p>
       </section>
@@ -178,22 +209,23 @@
 <script>
 /* =============================================================================
    MAB-Music Frontend – Vanilla JavaScript
-   Alur: ambil URL backend -> kirim {prompt, duration} ke /generate -> terima
-   audio base64 -> ubah jadi file audio di browser -> tampilkan di pemutar.
+   Alur: kirim pesanan lagu ke /generate -> dapat job_id -> tanya /status/{job_id}
+   setiap beberapa detik -> kalau selesai, ambil file mp3 dari /result/{job_id}
+   -> tampilkan di pemutar.
    ============================================================================= */
 
 // Jalan pintas untuk mengambil elemen HTML berdasarkan id
 const $ = (id) => document.getElementById(id);
 
 const KEY_API = "mabmusic_api_url";          // nama tempat menyimpan URL di browser
-const songs = [];                          // daftar lagu selama halaman terbuka
+const songs = [];                            // daftar lagu selama halaman terbuka
 
 const EXAMPLES = [
-  "calm lo-fi hip hop beat, soft piano, vinyl crackle, rainy night",
-  "energetic 8-bit chiptune, fast arpeggios, retro game boss fight",
-  "warm acoustic guitar ballad, gentle strings, sunset road trip",
-  "dark cinematic synthwave, pulsing bass, neon city at midnight",
-  "traditional gamelan with soft ambient pads, peaceful morning"
+  "warm pop ballad, soft female vocal, piano and strings, emotional",
+  "upbeat indie pop, male vocal, bright guitars, summer road trip",
+  "lo-fi hip hop beat, mellow vocal, soft piano, rainy night",
+  "epic cinematic rock, powerful vocal, big drums, anthemic chorus",
+  "acoustic folk, gentle female vocal, warm guitar, sunset mood"
 ];
 
 /* ---------- Simpan / baca URL backend (aman kalau browser memblokir storage) ---------- */
@@ -214,6 +246,12 @@ function getApiUrl() {
 
 /* Header ini melewati halaman peringatan gratis milik ngrok. Tanpa ini, permintaan bisa gagal. */
 const COMMON_HEADERS = { "ngrok-skip-browser-warning": "true" };
+
+/* Ubah detik menjadi tampilan menit:detik, misalnya 90 -> 1:30 */
+function formatDur(sec) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + ":" + String(s).padStart(2, "0");
+}
 
 /* ---------- Indikator koneksi ---------- */
 function setConn(state, text) {
@@ -247,69 +285,92 @@ function showError(msg) {
   box.classList.toggle("hidden", !msg);
 }
 
-/* ---------- Ubah teks base64 menjadi alamat audio yang bisa diputar ---------- */
-function base64ToBlobUrl(b64, mime) {
-  const bin = atob(b64);                          // teks base64 -> data biner
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return URL.createObjectURL(new Blob([bytes], { type: mime }));
+/* Membaca pesan error dari backend (kalau ada) */
+async function readError(res) {
+  try { const d = await res.json(); return d.detail || ("HTTP " + res.status); }
+  catch (e) { return "HTTP " + res.status; }
 }
 
 /* ---------- Tombol Generate: aktif / loading ---------- */
 let timer = null;
+let jobInfo = "";                            // pesan status yang diisi saat menunggu lagu selesai
+
 function setLoading(on) {
   const btn = $("genBtn");
   btn.disabled = on;
   $("genIcon").style.display = on ? "inline-flex" : "none";
-  $("genText").textContent = on ? "Sedang membuat musik…" : "Generate Music";
+  $("genText").textContent = on ? "Sedang membuat lagu…" : "Generate Music";
   clearInterval(timer);
   if (on) {
     const t0 = Date.now();
     timer = setInterval(() => {
       const s = Math.floor((Date.now() - t0) / 1000);
-      $("status").textContent = "Menunggu AI selesai… " + s + " detik (permintaan pertama bisa lebih lama).";
+      $("status").textContent = (jobInfo || "Mengirim pesanan…") + " " + formatDur(s) + " berlalu.";
     }, 500);
   }
 }
 
-/* ---------- Fungsi utama: minta musik ke backend ---------- */
+/* ---------- Fungsi utama: kirim pesanan -> tanya status -> ambil mp3 ---------- */
 async function generate() {
   showError("");
   const base = getApiUrl();
   const prompt = $("prompt").value.trim();
+  const lyrics = $("lyrics").value.trim();
+  const instrumental = $("instrumental").checked;
   const duration = parseInt($("duration").value, 10);
+  const language = $("lang").value;
 
   if (!base) return showError("Isi dulu URL API Backend di pojok atas (salin dari Google Colab).");
-  if (prompt.length < 3) return showError("Deskripsi musik terlalu pendek. Tulis minimal beberapa kata.");
+  if (prompt.length < 3) return showError("Gaya musik terlalu pendek. Tulis minimal beberapa kata.");
+  if (!instrumental && lyrics.length < 10) return showError("Tulis lirik dulu, atau centang 'Tanpa vokal (instrumental)'.");
 
   setLoading(true);
-  const ctrl = new AbortController();
-  const stop = setTimeout(() => ctrl.abort(), 5 * 60 * 1000);   // batas tunggu 5 menit
-
   try {
+    // 1) Kirim pesanan lagu, dapat nomor pekerjaan (job_id)
     const res = await fetch(base + "/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...COMMON_HEADERS },
-      body: JSON.stringify({ prompt, duration }),
-      signal: ctrl.signal
+      body: JSON.stringify({ prompt, lyrics, duration, vocal_language: language, instrumental })
     });
+    if (!res.ok) throw new Error(await readError(res));
+    const { job_id } = await res.json();
 
-    if (!res.ok) {
-      let detail = "HTTP " + res.status;
-      try { detail = (await res.json()).detail || detail; } catch (e) {}
-      throw new Error(detail);
+    // 2) Tanya status setiap 4 detik sampai selesai (maksimal 90 menit)
+    const mulai = Date.now();
+    let gagalBerturut = 0;                   // toleransi gangguan jaringan sesaat
+    let done = false;
+    while (!done) {
+      if (Date.now() - mulai > 90 * 60 * 1000) throw new Error("Terlalu lama menunggu (lebih dari 90 menit).");
+      await new Promise((r) => setTimeout(r, 4000));
+      try {
+        const st = await fetch(base + "/status/" + job_id, { headers: COMMON_HEADERS });
+        if (!st.ok) throw new Error(await readError(st));
+        const info = await st.json();
+        gagalBerturut = 0;
+        if (info.status === "queued") jobInfo = "Antre, urutan ke-" + info.queue_position + "…";
+        else if (info.status === "running") jobInfo = "AI sedang membuat lagu…";
+        else if (info.status === "error") { const err = new Error(info.message || "Backend melaporkan error."); err.fatal = true; throw err; }
+        else if (info.status === "done") done = true;
+      } catch (e) {
+        if (e.fatal) throw e;                // error dari backend: berhenti
+        gagalBerturut++;                     // gangguan jaringan: coba lagi, maksimal 6 kali berturut-turut
+        jobInfo = "Koneksi terputus sesaat, mencoba lagi…";
+        if (gagalBerturut >= 6) throw new Error("Koneksi ke backend terputus. Cek apakah Colab masih menyala.");
+      }
     }
 
-    const data = await res.json();
-    const url = base64ToBlobUrl(data.audio_base64, data.mime || "audio/wav");
+    // 3) Ambil file mp3 dan tampilkan di pemutar
+    jobInfo = "Mengunduh lagu…";
+    const audioRes = await fetch(base + "/result/" + job_id, { headers: COMMON_HEADERS });
+    if (!audioRes.ok) throw new Error(await readError(audioRes));
+    const url = URL.createObjectURL(await audioRes.blob());
 
-    // Isi pemutar & mainkan otomatis
     $("audio").src = url;
     $("download").href = url;
-    $("playerTitle").textContent = prompt + " · " + duration + " dtk";
+    $("playerTitle").textContent = prompt + " · " + formatDur(duration);
     $("player").classList.remove("hidden");
     $("emptyNote").classList.add("hidden");
-    $("audio").play().catch(() => {});   // beberapa browser memblokir autoplay; tidak masalah
+    $("audio").play().catch(() => {});       // beberapa browser memblokir autoplay; tidak masalah
 
     // Catat ke daftar "Hasil saya"
     songs.unshift({ prompt, duration, url, time: new Date().toLocaleTimeString("id-ID") });
@@ -318,13 +379,10 @@ async function generate() {
     setConn("ok", "Terhubung");
     $("status").textContent = "Selesai! Lagu siap diputar.";
   } catch (e) {
-    const msg = e.name === "AbortError"
-      ? "Terlalu lama menunggu (lebih dari 5 menit). Coba durasi lebih pendek."
-      : "Gagal membuat musik: " + e.message + ". Pastikan Colab masih menyala dan URL benar.";
-    showError(msg);
+    showError("Gagal membuat lagu: " + e.message + ". Pastikan Colab masih menyala dan URL benar.");
     $("status").textContent = "";
   } finally {
-    clearTimeout(stop);
+    jobInfo = "";
     setLoading(false);
   }
 }
@@ -345,7 +403,7 @@ function renderLibrary() {
 
     const meta = document.createElement("p");
     meta.className = "text-xs text-mist mb-2";
-    meta.textContent = item.duration + " detik · dibuat " + item.time;
+    meta.textContent = formatDur(item.duration) + " menit · dibuat " + item.time;
 
     const audio = document.createElement("audio");
     audio.controls = true;
@@ -353,8 +411,8 @@ function renderLibrary() {
 
     const dl = document.createElement("a");
     dl.href = item.url;
-    dl.download = "mab-music-" + (songs.length - i) + ".wav";
-    dl.textContent = "Unduh .wav";
+    dl.download = "mab-music-" + (songs.length - i) + ".mp3";
+    dl.textContent = "Unduh .mp3";
     dl.className = "inline-block mt-2 text-sm text-lilac underline underline-offset-4";
 
     card.append(title, meta, audio, dl);
@@ -382,7 +440,7 @@ function closeMenu() { $("sidebar").classList.add("-translate-x-full");    $("ov
 window.addEventListener("DOMContentLoaded", () => {
   $("apiUrl").value = loadSavedUrl();
 
-  // Chip contoh prompt
+  // Chip contoh gaya musik
   EXAMPLES.forEach((text) => {
     const chip = document.createElement("button");
     chip.type = "button";
@@ -393,7 +451,8 @@ window.addEventListener("DOMContentLoaded", () => {
     $("chips").appendChild(chip);
   });
 
-  $("duration").addEventListener("input", (e) => { $("durVal").textContent = e.target.value; });
+  $("duration").addEventListener("input", (e) => { $("durVal").textContent = formatDur(parseInt(e.target.value, 10)); });
+  $("instrumental").addEventListener("change", (e) => { $("lyrics").disabled = e.target.checked; });
   $("genBtn").addEventListener("click", generate);
   $("testBtn").addEventListener("click", testConnection);
   $("apiUrl").addEventListener("change", () => { setConn("idle", "Belum dites"); });
