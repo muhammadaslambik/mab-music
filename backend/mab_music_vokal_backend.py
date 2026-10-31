@@ -23,12 +23,39 @@ def run(cmd, cwd=None):
 if not os.path.isdir(REPO):
     run(f"git clone --depth 1 https://github.com/ACE-Step/ACE-Step-1.5.git {REPO}")
 
-# 2) Pasang library: yang kita butuhkan untuk API + yang diminta ACE-Step
-run(f"{sys.executable} -m pip install -q fastapi uvicorn nest_asyncio pyngrok huggingface_hub")
-if os.path.exists(f"{REPO}/requirements.txt"):
-    run(f"{sys.executable} -m pip install -q -r requirements.txt", cwd=REPO)
-else:
-    print("ℹ️  requirements.txt tidak ditemukan di folder ACE-Step (mungkin struktur repo berubah).")
+# 2) Pasang library. Urutan penting: pasang SEMUA dulu, baru mengimpor apa pun.
+run(f"{sys.executable} -m pip install -q fastapi uvicorn nest_asyncio pyngrok")
+
+import re
+# Library besar ini sudah ada di Colab (atau tidak diperlukan), jadi dilewati agar tidak merusak
+LEWATI = {"torch", "torchvision", "torchaudio", "triton", "flash-attn", "vllm", "nano-vllm"}
+
+
+def nama_paket(baris):
+    return re.split(r"[<>=!~;\[ @]", baris.strip())[0].lower()
+
+
+# Baca daftar kebutuhan langsung dari kode ACE-Step (pyproject.toml)
+daftar = []
+try:
+    import tomllib
+    with open(f"{REPO}/pyproject.toml", "rb") as f:
+        daftar = tomllib.load(f)["project"]["dependencies"]
+    print("Ditemukan", len(daftar), "kebutuhan di pyproject.toml")
+except Exception as err:
+    print("⚠️  pyproject.toml tidak terbaca:", err)
+
+daftar = [d for d in daftar if nama_paket(d) not in LEWATI]
+daftar.append("loguru")                   # terbukti dibutuhkan
+
+cmd = [sys.executable, "-m", "pip", "install", "-q", *daftar]
+if subprocess.run(cmd, capture_output=True, text=True).returncode != 0:
+    print("Pemasangan sekaligus gagal, mencoba satu per satu...")
+    for d in daftar:
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "-q", d],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print("  gagal:", d)
 
 # 3) Unduh model (versi 'turbo' = cepat). Kita tidak memuat model bahasa (LM)
 #    agar hemat memori GPU, jadi lagu panjang lebih mungkin muat di T4.
@@ -45,6 +72,8 @@ except Exception as err:
     print("⚠️  Gagal mengunduh model:", err)
 
 print("✅ Cell 1 selesai. Lanjut ke CELL 2.")
+print("ℹ️  Kalau CELL 2 nanti menampilkan error 'XetAuthorizationError': klik Runtime > Mulai ulang sesi,\n"
+      "   lalu jalankan CELL 2 lagi (JANGAN ulangi Cell 1).")
 
 
 #@@CELL
@@ -57,6 +86,7 @@ print("✅ Cell 1 selesai. Lanjut ke CELL 2.")
 # ==============================================================================
 import os, sys, time, queue, threading, subprocess
 
+REPO = "/content/ACE-Step-1.5"       # (diulang di sini agar aman setelah mulai ulang sesi)
 sys.path.insert(0, REPO)                  # supaya "import acestep" bisa menemukan kodenya
 os.chdir(REPO)
 
@@ -67,6 +97,15 @@ if not torch.cuda.is_available():
 from acestep.handler import AceStepHandler
 from acestep.llm_inference import LLMHandler
 from acestep.inference import GenerationParams, GenerationConfig, generate_music
+
+# T4 tidak mendukung bfloat16 secara bawaan, sehingga ACE-Step turun ke float16 dan hasil lagunya
+# rusak (error "NaN"). Kita paksa memakai bfloat16 (lewat emulasi: sedikit lebih lambat, tapi stabil).
+for modul in list(sys.modules.values()):
+    try:
+        if hasattr(modul, "cuda_supports_bfloat16"):
+            modul.cuda_supports_bfloat16 = lambda *a, **k: True
+    except Exception:
+        pass
 
 # ------------------------------ MEMUAT MODEL ----------------------------------
 dit_handler = AceStepHandler()            # "mesin musik" utama
@@ -82,6 +121,7 @@ except TypeError:
     status = dit_handler.initialize_service(
         project_root=REPO, config_path="acestep-v15-turbo", device="cuda")
 print("Status model:", status)
+print("Tipe angka yang dipakai:", getattr(dit_handler, "dtype", "?"))   # harus torch.bfloat16
 
 OUT_DIR = "/content/mab_output"           # tempat file lagu sementara disimpan
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -227,13 +267,13 @@ NGROK_AUTHTOKEN = "PASTE_TOKEN_NGROK_KAMU_DI_SINI"
 
 import time, threading
 import nest_asyncio, uvicorn
-from pyngrok import ngrok
+from pyngrok import ngrok, conf
 
 if NGROK_AUTHTOKEN.startswith("PASTE"):
     raise ValueError("Isi dulu NGROK_AUTHTOKEN di atas dengan token dari dashboard ngrok.")
 
 nest_asyncio.apply()
-ngrok.set_auth_token(NGROK_AUTHTOKEN)
+conf.get_default().auth_token = NGROK_AUTHTOKEN   # pasang token tanpa menyimpan ulang ke file
 ngrok.kill()                              # tutup tunnel lama kalau cell dijalankan ulang
 
 PORT = 8000
