@@ -10,252 +10,281 @@
 <style>
 body{background:#0e0d14;color:#ece9f5;font-family:'DM Sans',system-ui,sans-serif}
 h1,h2{font-family:'Bricolage Grotesque',system-ui,sans-serif}
-input,textarea{background:#0e0d14;border:1px solid #2a2735;border-radius:8px;padding:6px 8px;color:inherit}
-.btn{padding:8px 14px;border-radius:10px;border:1px solid #2a2735;font-size:14px}
+input,textarea,select{background:#0e0d14;border:1px solid #2a2735;border-radius:8px;padding:5px 8px;color:inherit}
+.btn{padding:7px 12px;border-radius:10px;border:1px solid #2a2735;font-size:14px}
 .btn:hover{border-color:#a78bfa}
 .pri{background:#ff7a59;color:#0e0d14;font-weight:600;border:0}
+.clip{position:absolute;height:38px;border-radius:6px;color:#0e0d14;font-size:11px;font-weight:600;line-height:38px;cursor:grab;overflow:hidden;user-select:none}
+.h{position:absolute;top:0;bottom:0;width:7px;background:rgba(0,0,0,.35);cursor:ew-resize}
 :focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
 </style>
 </head>
 <body class="min-h-screen">
-<header class="px-5 py-4 border-b border-edge flex items-center gap-4">
+<header class="px-5 py-3 border-b border-edge flex items-center gap-4">
   <a href="index.html" class="text-sm text-lilac underline underline-offset-4">← Buat lagu</a>
   <h1 class="text-xl">MAB-Music Editor Video</h1>
+  <span class="text-xs text-mist hidden md:inline">Semua diproses di komputer Anda. Tidak ada beban ke server.</span>
 </header>
 
-<main class="max-w-6xl mx-auto p-4 grid lg:grid-cols-[1fr_380px] gap-5">
-  <!-- Pratinjau & tombol -->
-  <section>
-    <canvas id="cv" width="1280" height="720" class="w-full rounded-xl border border-edge bg-black"></canvas>
-    <div class="flex flex-wrap gap-2 mt-3">
-      <button id="bPlay" class="btn">▶ Putar</button>
-      <button id="bStop" class="btn">■ Berhenti</button>
-      <button id="bTap" class="btn">⏱ Mulai ketuk lirik</button>
-      <button id="bExp" class="btn pri">Ekspor video</button>
-      <a id="dl" class="btn hidden text-lilac"></a>
+<main class="max-w-7xl mx-auto p-4 space-y-4">
+  <div class="grid lg:grid-cols-[1fr_340px] gap-4">
+    <section>
+      <canvas id="cv" width="1280" height="720" class="w-full max-h-[52vh] object-contain rounded-xl border border-edge bg-black"></canvas>
+      <div class="flex flex-wrap gap-2 mt-3 items-center">
+        <button id="bPlay" class="btn">▶ Putar</button>
+        <button id="bRew" class="btn" aria-label="Ke awal">⏮</button>
+        <label class="btn cursor-pointer">＋ Tambah file<input id="fF" type="file" accept="image/*,video/*,audio/*" multiple class="hidden"></label>
+        <button id="bExp" class="btn pri">Ekspor video</button>
+        <a id="dl" class="btn hidden text-lilac"></a>
+        <span id="tc" class="text-sm text-mist ml-auto">0:00</span>
+      </div>
+      <p id="st" class="text-sm text-mist mt-2 min-h-[20px]" role="status"></p>
+    </section>
+
+    <aside class="space-y-3">
+      <div class="bg-panel border border-edge rounded-2xl p-4"><h2 class="text-lg mb-2">Klip terpilih</h2><div id="pr"></div></div>
+      <div class="bg-panel border border-edge rounded-2xl p-4">
+        <h2 class="text-lg mb-2">Lirik berjalan</h2>
+        <textarea id="ly" rows="4" class="w-full text-sm" placeholder="Satu baris lirik per baris"></textarea>
+        <div class="flex gap-2 mt-2"><button id="bSplit" class="btn text-sm">Bagi rata</button><button id="bTap" class="btn text-sm">⏱ Mulai ketuk</button></div>
+        <div id="lt" class="max-h-40 overflow-auto mt-2"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Timeline -->
+  <section class="bg-panel border border-edge rounded-2xl p-3">
+    <div class="flex flex-wrap items-center gap-3 mb-2 text-sm">
+      <label class="flex items-center gap-2">Zoom <input id="zm" type="range" min="10" max="200" value="40" class="w-40"></label>
+      <button id="bCut" class="btn">✂ Potong (S)</button>
+      <button id="bDel" class="btn">Hapus (Del)</button>
+      <span class="text-xs text-mist">Seret klip untuk memindah (juga antar trek), seret tepi untuk memotong, klik garis waktu untuk pindah posisi.</span>
     </div>
-    <p id="st" class="text-sm text-mist mt-2 min-h-[20px]" role="status"></p>
-    <p class="text-xs text-mist mt-1">Ekspor direkam langsung (real-time): lagu 3 menit = 3 menit menunggu. Biarkan tab ini terbuka dan terlihat. Chrome atau Edge disarankan.</p>
+    <div class="flex">
+      <div class="shrink-0 w-16 text-xs text-mist" style="padding-top:24px">
+        <div style="height:44px;line-height:44px">Video 2</div><div style="height:44px;line-height:44px">Video 1</div>
+        <div style="height:44px;line-height:44px">Audio 1</div><div style="height:44px;line-height:44px">Audio 2</div>
+      </div>
+      <div id="sc" class="flex-1 overflow-x-auto"><div id="inn" class="relative"></div></div>
+    </div>
   </section>
-
-  <!-- Panel pengaturan -->
-  <aside class="space-y-4">
-    <div class="bg-panel border border-edge rounded-2xl p-4">
-      <h2 class="text-lg mb-2">1. Lagu</h2>
-      <input id="fA" type="file" accept="audio/*" class="w-full text-sm" />
-      <p class="text-xs text-mist mt-1">Unggah file .mp3 dari halaman Buat lagu. Kosongkan bila hanya menyunting video.</p>
-    </div>
-
-    <div class="bg-panel border border-edge rounded-2xl p-4">
-      <h2 class="text-lg mb-2">2. Gambar &amp; video latar</h2>
-      <input id="fC" type="file" accept="image/*,video/*" multiple class="w-full text-sm" />
-      <p class="text-xs text-mist mt-1">Urutan daftar = urutan tayang (gabung). Atur mulai/selesai untuk memotong video.</p>
-      <div id="cl" class="space-y-2 mt-3"></div>
-    </div>
-
-    <div class="bg-panel border border-edge rounded-2xl p-4">
-      <h2 class="text-lg mb-2">3. Lirik berjalan</h2>
-      <textarea id="ly" rows="6" class="w-full text-sm" placeholder="Satu baris lirik per baris. Tanpa [Verse]/[Chorus]."></textarea>
-      <div class="flex gap-2 mt-2"><button id="bSplit" class="btn text-sm">Bagi rata</button></div>
-      <p class="text-xs text-mist mt-1">Cara akurat: tekan "Mulai ketuk lirik", lalu ketuk (atau Spasi) saat tiap baris mulai dinyanyikan. Waktu bisa diedit manual (detik).</p>
-      <div id="lt" class="max-h-64 overflow-auto mt-2"></div>
-    </div>
-  </aside>
 </main>
 
-<audio id="aud"></audio>
-<video id="vid" playsinline style="display:none"></video>
-
 <script>
-/* Editor video MAB-Music: semua berjalan di browser, tanpa server dan tanpa GPU.
-   Cara kerja: kanvas menggambar latar + lirik tiap frame; ekspor merekam kanvas + suara. */
-const $=id=>document.getElementById(id), cv=$('cv'), g=cv.getContext('2d'), aud=$('aud'), vid=$('vid');
-let clips=[], lines=[], times=[], playing=false, t0=0, T=0, cur=-1, tap=-1, rec=null, chunks=[], ac, dest, aG, vG, hasA=false;
-const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+/* Editor multi-trek MAB-Music. Semua berjalan di browser pengguna: gambar digambar ke kanvas,
+   suara diatur lewat Web Audio, ekspor merekam kanvas + suara. */
+const $=id=>document.getElementById(id), cv=$('cv'), g=cv.getContext('2d');
+const LH=44, RH=24;
+let clips=[], sel=null, uid=0, Z=40, T=0, T0=0, t0=0, playing=false, rec=null, chunks=[], drag=null, tap=-1, lines=[], times=[];
+const ac=new AudioContext(), dest=ac.createMediaStreamDestination(), master=ac.createGain();
+master.connect(ac.destination); master.connect(dest);
 const esc=s=>s.replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 const say=m=>$('st').textContent=m;
-const total=()=>Math.max(clips.reduce((s,c)=>s+c.e-c.s,0), hasA&&isFinite(aud.duration)?aud.duration:0);
+const total=()=>clips.reduce((m,c)=>Math.max(m,c.at+c.e-c.s),0);
 
-/* Jalur suara: lagu dan suara video digabung agar bisa direkam */
-function initAudio(){
-  if(ac) return;
-  ac=new AudioContext(); dest=ac.createMediaStreamDestination(); aG=ac.createGain(); vG=ac.createGain();
-  ac.createMediaElementSource(aud).connect(aG); ac.createMediaElementSource(vid).connect(vG);
-  [aG,vG].forEach(n=>{n.connect(ac.destination); n.connect(dest);});
+/* ---- Membuat klip ---- */
+const FX={none:['allpass',0,0],bass:['lowshelf',12,200],treble:['highshelf',10,3000],phone:['bandpass',0,1000]};
+function setFx(c){ const p=FX[c.fx], f=c.f; f.type=p[0]; f.gain.value=p[1]; if(p[2]) f.frequency.value=p[2]; }
+function mk(o){
+  const c=Object.assign({id:++uid,vol:1,fi:0,fo:0,fx:'none',s:0},o);
+  if(c.type=='i'){ c.el=new Image(); c.el.src=c.url; c.max=1e9; }
+  else {
+    c.el=document.createElement(c.type=='v'?'video':'audio'); c.el.preload='auto'; c.el.playsInline=true; c.el.src=c.url;
+    const s=ac.createMediaElementSource(c.el); c.f=ac.createBiquadFilter(); c.g=ac.createGain();
+    s.connect(c.f); c.f.connect(c.g); c.g.connect(master); setFx(c);   // jalur: suara -> efek -> volume -> keluaran
+  }
+  clips.push(c); return c;
 }
-
-/* ---- Lagu ---- */
-$('fA').onchange=e=>{
-  const f=e.target.files[0]; if(!f) return;
-  aud.src=URL.createObjectURL(f); hasA=true;
-  aud.onloadedmetadata=()=>{ say('Lagu dimuat: '+fmt(aud.duration)); clips.forEach(c=>{if(c.type=='img'&&c.auto) c.e=aud.duration;}); drawClips(); };
-};
-
-/* ---- Gambar & video ---- */
-$('fC').onchange=e=>{
+function add(c){ sel=c; renderTL(); props(); seek(T); }
+$('fF').onchange=e=>{
   [...e.target.files].forEach(f=>{
-    const url=URL.createObjectURL(f);
-    if(f.type.startsWith('image')){
-      const im=new Image();
-      im.onload=()=>{ clips.push({type:'img',el:im,name:f.name,s:0,e:(hasA&&aud.duration)||10,auto:true}); drawClips(); };
-      im.src=url;
-    } else {
-      const v=document.createElement('video'); v.preload='metadata';
-      v.onloadedmetadata=()=>{ clips.push({type:'vid',url,name:f.name,s:0,e:v.duration,max:v.duration}); drawClips(); };
-      v.src=url;
-    }
+    const url=URL.createObjectURL(f), k=f.type.split('/')[0], type=k=='image'?'i':k=='video'?'v':k=='audio'?'a':null;
+    if(!type) return;
+    const track=type=='a'?2:1, at=clips.filter(c=>c.track==track).reduce((m,c)=>Math.max(m,c.at+c.e-c.s),0);  // ditempel di akhir trek
+    if(type=='i') return add(mk({type,url,name:f.name,track,at,s:0,e:5}));
+    const p=document.createElement(type=='v'?'video':'audio'); p.preload='metadata';
+    p.onloadedmetadata=()=>add(mk({type,url,name:f.name,track,at,s:0,e:p.duration,max:p.duration}));
+    p.src=url;
   });
   e.target.value='';
 };
 
-function drawClips(){
-  const box=$('cl'); box.innerHTML='';
-  clips.forEach((c,i)=>{
-    const d=document.createElement('div'); d.className='border border-edge rounded-lg p-2 text-sm';
-    d.innerHTML='<div class="flex justify-between gap-2"><span class="truncate">'+(c.type=='img'?'🖼 ':'🎞 ')+esc(c.name)+'</span>'+
-      '<span class="shrink-0"><button data-a="u" aria-label="Naik">↑</button> <button data-a="d" aria-label="Turun">↓</button> <button data-a="x" aria-label="Hapus">✕</button></span></div>'+
-      (c.type=='vid'
-        ? '<div class="mt-1 text-mist">Potong: mulai <input type="number" step="0.1" min="0" value="'+c.s.toFixed(1)+'" data-f="s" class="w-20"> selesai <input type="number" step="0.1" min="0" value="'+c.e.toFixed(1)+'" data-f="e" class="w-20"> dtk</div>'
-        : '<div class="mt-1 text-mist">Durasi <input type="number" step="1" min="1" value="'+c.e.toFixed(0)+'" data-f="e" class="w-20"> dtk</div>');
-    d.onclick=ev=>{
-      const a=ev.target.dataset.a; if(!a) return;
-      if(a=='x') clips.splice(i,1);
-      if(a=='u'&&i>0) [clips[i-1],clips[i]]=[clips[i],clips[i-1]];
-      if(a=='d'&&i<clips.length-1) [clips[i+1],clips[i]]=[clips[i],clips[i+1]];
-      drawClips();
-    };
-    d.onchange=ev=>{
-      const f=ev.target.dataset.f; if(!f) return;
-      c[f]=Math.max(0,+ev.target.value);
-      if(c.type=='vid') c.e=Math.min(c.e,c.max);
-      if(c.type=='img') c.auto=false;
-      if(c.e<=c.s) c.e=c.s+1;
-      drawClips();
-    };
-    box.appendChild(d);
+/* ---- Timeline ---- */
+function renderTL(){
+  const W=Math.max(total()+15,30)*Z, st=Z>=60?1:Z>=25?5:10, H=RH+4*LH; let h='';
+  for(let s=0;s<W/Z;s+=st) h+='<div class="absolute text-[10px] text-mist border-l border-edge pl-1" style="left:'+s*Z+'px;top:0;height:'+H+'px">'+fmt(s)+'</div>';
+  for(let i=0;i<4;i++) h+='<div class="absolute left-0 right-0 border-t border-edge" style="top:'+(RH+i*LH)+'px;height:'+LH+'px;'+(i>1?'background:rgba(255,255,255,.03)':'')+'"></div>';
+  clips.forEach(c=>{
+    const col=c.type=='a'?'#10b981':c.type=='i'?'#38bdf8':'#a78bfa';
+    h+='<div class="clip" data-id="'+c.id+'" style="left:'+c.at*Z+'px;width:'+Math.max(6,(c.e-c.s)*Z)+'px;top:'+(RH+c.track*LH+3)+'px;background:'+col+(c===sel?';outline:2px solid #ff7a59':'')+'"><i class="h" data-h="l" style="left:0"></i><span class="px-2 block truncate">'+esc(c.name)+'</span><i class="h" data-h="r" style="right:0"></i></div>';
   });
-  idle();
+  h+='<div id="ph" class="absolute w-0.5 bg-ember pointer-events-none" style="top:0;height:'+H+'px"></div>';
+  $('inn').style.width=W+'px'; $('inn').style.height=H+'px'; $('inn').innerHTML=h; movePH();
+}
+function movePH(){
+  const p=$('ph'); if(p) p.style.left=T*Z+'px'; $('tc').textContent=fmt(T)+' / '+fmt(total());
+  const sc=$('sc'); if(playing&&T*Z>sc.scrollLeft+sc.clientWidth-30) sc.scrollLeft=T*Z-60;
+}
+$('inn').onpointerdown=e=>{
+  const d=e.target.closest('.clip'), r=$('inn').getBoundingClientRect();
+  if(!d){ seek((e.clientX-r.left)/Z); return; }
+  const c=clips.find(x=>x.id==d.dataset.id); sel=c;
+  drag={c,h:e.target.dataset.h,x:e.clientX,at:c.at,s:c.s,e:c.e}; props(); renderTL();
+};
+addEventListener('pointermove',e=>{
+  if(!drag) return; const c=drag.c, dx=(e.clientX-drag.x)/Z;
+  if(drag.h=='l'){ const ns=Math.min(Math.max(0,drag.s+dx),drag.e-.2); c.at=Math.max(0,drag.at+ns-drag.s); c.s=ns; }
+  else if(drag.h=='r') c.e=Math.min(Math.max(drag.e+dx,c.s+.2),c.max);
+  else {
+    c.at=Math.max(0,drag.at+dx);
+    const r=$('inn').getBoundingClientRect(), tr=Math.floor((e.clientY-r.top-RH)/LH);
+    if(tr>=0&&tr<4&&((tr>1)==(c.type=='a'))) c.track=tr;     // video/gambar hanya di trek video, audio hanya di trek audio
+  }
+  renderTL();
+});
+addEventListener('pointerup',()=>{ if(drag){ drag=null; seek(T); } });
+$('zm').oninput=e=>{ Z=+e.target.value; renderTL(); };
+
+/* ---- Potong & hapus ---- */
+function split(){
+  const c=sel;
+  if(!c||T<=c.at+.1||T>=c.at+c.e-c.s-.1) return say('Pilih klip, lalu letakkan garis merah di dalam klip itu.');
+  const cut=c.s+T-c.at;
+  const n=mk({type:c.type,url:c.url,name:c.name,track:c.track,at:T,s:cut,e:c.e,max:c.max,vol:c.vol,fi:0,fo:c.fo,fx:c.fx});
+  c.e=cut; c.fo=0; sel=n; renderTL(); props();
+}
+function del(){
+  if(!sel) return; if(sel.el.pause) sel.el.pause();
+  clips=clips.filter(c=>c!==sel); sel=null; renderTL(); props(); seek(T);
+}
+$('bCut').onclick=split; $('bDel').onclick=del;
+
+/* ---- Panel klip terpilih: volume, fade, efek suara ---- */
+function props(){
+  const p=$('pr'), c=sel;
+  if(!c){ p.innerHTML='<p class="text-sm text-mist">Klik sebuah klip di timeline untuk mengatur volume, efek suara, memotong, atau menghapus.</p>'; return; }
+  const opts=[['none','Normal'],['bass','Bass tebal'],['treble','Treble jernih'],['phone','Suara telepon']].map(o=>'<option value="'+o[0]+'"'+(c.fx==o[0]?' selected':'')+'>'+o[1]+'</option>').join('');
+  p.innerHTML='<p class="text-sm truncate mb-2">'+esc(c.name)+'</p>'+(c.type=='i'?'<p class="text-xs text-mist">Gambar: seret tepi kanan klip untuk mengatur lama tayang.</p>':
+    '<label class="text-xs text-mist">Volume <span id="vv">'+Math.round(c.vol*100)+'</span>%</label><input id="pv" type="range" min="0" max="200" value="'+c.vol*100+'" class="w-full">'+
+    '<div class="flex gap-2 mt-2 text-xs text-mist"><label>Fade masuk (dtk)<input id="pi" type="number" min="0" step="0.5" value="'+c.fi+'" class="w-full"></label><label>Fade keluar (dtk)<input id="po" type="number" min="0" step="0.5" value="'+c.fo+'" class="w-full"></label></div>'+
+    '<label class="text-xs text-mist block mt-2">Efek suara<select id="px" class="w-full">'+opts+'</select></label>');
+  if($('pv')){
+    $('pv').oninput=e=>{ c.vol=e.target.value/100; $('vv').textContent=e.target.value; };
+    $('pi').onchange=e=>c.fi=Math.max(0,+e.target.value); $('po').onchange=e=>c.fo=Math.max(0,+e.target.value);
+    $('px').onchange=e=>{ c.fx=e.target.value; setFx(c); };
+  }
 }
 
-/* ---- Lirik ---- */
-function syncLines(){
-  const nl=$('ly').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  times=nl.map((_,i)=>times[i]??null); lines=nl; drawLines();
+/* ---- Menggambar frame ---- */
+function draw(){
+  g.fillStyle='#000'; g.fillRect(0,0,1280,720);
+  for(const tr of [1,0]){        // Video 1 digambar dulu, Video 2 di atasnya
+    const c=clips.find(c=>c.track==tr&&c.type!='a'&&T>=c.at&&T<c.at+c.e-c.s); if(!c) continue;
+    const el=c.el, w=c.type=='i'?el.naturalWidth:el.videoWidth, h=c.type=='i'?el.naturalHeight:el.videoHeight;
+    if(w&&(c.type=='i'||el.readyState>1)){ const r=Math.max(1280/w,720/h); g.drawImage(el,(1280-w*r)/2,(720-h*r)/2,w*r,h*r); }
+  }
+  g.textAlign='center';
+  if(lines.length){
+    g.fillStyle='rgba(0,0,0,.4)'; g.fillRect(0,0,1280,720);
+    let k=-1,b=-1; times.forEach((x,j)=>{ if(x!=null&&x<=T&&x>b){b=x;k=j;} });
+    g.shadowColor='#000'; g.shadowBlur=12;
+    if(k>=0) lyric(lines[k],390,64,'#fff');
+    if(lines[k+1]) lyric(lines[k+1],480,36,'rgba(255,255,255,.55)');
+    g.shadowBlur=0;
+  }
+  if(!clips.length){ g.fillStyle='rgba(255,255,255,.6)'; g.font="500 30px 'DM Sans',sans-serif"; g.fillText('Klik "＋ Tambah file" untuk memulai',640,370); }
 }
+function lyric(s,y,size,col){
+  g.font='700 '+size+"px 'DM Sans',sans-serif";
+  while(g.measureText(s).width>1150&&size>22){ size-=2; g.font='700 '+size+"px 'DM Sans',sans-serif"; }
+  g.fillStyle=col; g.fillText(s,640,y);
+}
+setInterval(()=>{ if(!playing) draw(); },400);
+
+/* ---- Memutar ---- */
+function sync(){
+  clips.forEach(c=>{
+    if(c.type=='i') return;
+    const L=c.e-c.s, lt=T-c.at, act=lt>=0&&lt<L, want=c.s+lt;
+    if(act){
+      if(c.el.paused){ c.el.currentTime=want; c.el.play().catch(()=>{}); }
+      else if(Math.abs(c.el.currentTime-want)>.35) c.el.currentTime=want;
+      let k=c.vol; if(c.fi>0) k*=Math.min(1,lt/c.fi); if(c.fo>0) k*=Math.min(1,(L-lt)/c.fo);   // fade
+      c.g.gain.value=Math.max(0,k);
+    } else if(!c.el.paused) c.el.pause();
+  });
+}
+function loop(){
+  if(!playing) return;
+  T=T0+(performance.now()-t0)/1000;
+  if(T>=total()){ T=total(); pause(); movePH(); draw(); return; }
+  sync(); draw(); movePH(); requestAnimationFrame(loop);
+}
+function play(){
+  if(!total()) return say('Tambahkan file dulu.');
+  if(T>=total()-.05) T=0;
+  ac.resume(); playing=true; T0=T; t0=performance.now(); $('bPlay').textContent='❚❚ Jeda'; requestAnimationFrame(loop);
+}
+function pause(){
+  playing=false; clips.forEach(c=>c.el.pause&&c.el.pause()); $('bPlay').textContent='▶ Putar';
+  if(rec&&rec.state!='inactive') rec.stop();
+  tap=-1; $('bTap').textContent='⏱ Mulai ketuk';
+}
+function seek(t){
+  T=Math.max(0,t);
+  if(playing){ T0=T; t0=performance.now(); }
+  else clips.forEach(c=>{ if(c.type=='v'&&T>=c.at&&T<c.at+c.e-c.s) c.el.currentTime=c.s+T-c.at; });
+  movePH(); draw(); setTimeout(draw,150);
+}
+$('bPlay').onclick=()=>playing?pause():play();
+$('bRew').onclick=()=>seek(0);
+
+/* ---- Lirik ---- */
+function syncLines(){ const nl=$('ly').value.split('\n').map(s=>s.trim()).filter(Boolean); times=nl.map((_,i)=>times[i]??null); lines=nl; drawLines(); }
 function drawLines(){
   $('lt').innerHTML=lines.map((l,i)=>'<div class="flex items-center gap-2 text-sm py-1"><input type="number" step="0.1" min="0" value="'+(times[i]??'')+'" data-i="'+i+'" class="w-20" placeholder="dtk"><span class="truncate">'+esc(l)+'</span></div>').join('');
 }
 $('ly').oninput=syncLines;
 $('lt').onchange=e=>{ const i=e.target.dataset.i; if(i!=null) times[i]=e.target.value===''?null:+e.target.value; };
 $('bSplit').onclick=()=>{ const L=total()||1; times=lines.map((_,i)=>+(i*L/lines.length).toFixed(1)); drawLines(); };
-
-/* ---- Menggambar satu frame ---- */
-function clipAt(t){
-  let a=0;
-  for(let i=0;i<clips.length;i++){ const L=clips[i].e-clips[i].s; if(t<a+L||i==clips.length-1) return [i,Math.min(t-a,L)]; a+=L; }
-  return [-1,0];
-}
-function cover(w,h,src){ const r=Math.max(1280/w,720/h); g.drawImage(src,(1280-w*r)/2,(720-h*r)/2,w*r,h*r); }
-function line(s,y,size,col){
-  g.font='700 '+size+"px 'DM Sans',sans-serif";
-  while(g.measureText(s).width>1150&&size>22){ size-=2; g.font='700 '+size+"px 'DM Sans',sans-serif"; }
-  g.fillStyle=col; g.fillText(s,640,y);
-}
-function overlay(t){
-  g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(0,0,1280,720);
-  let k=-1,b=-1; times.forEach((x,j)=>{ if(x!=null&&x<=t&&x>b){b=x;k=j;} });
-  g.textAlign='center'; g.shadowColor='#000'; g.shadowBlur=12;
-  if(k>=0) line(lines[k],390,64,'#fff');
-  if(lines[k+1]) line(lines[k+1],480,36,'rgba(255,255,255,.55)');
-  g.shadowBlur=0;
-}
-function drawAt(t){
-  g.fillStyle='#000'; g.fillRect(0,0,1280,720);
-  const [i]=clipAt(t);
-  if(i>=0){
-    const c=clips[i];
-    if(i!==cur){ cur=i; if(c.type=='vid'){ vid.src=c.url; vid.currentTime=c.s; vid.play().catch(()=>{}); } else vid.pause(); }
-    if(c.type=='img') cover(c.el.naturalWidth,c.el.naturalHeight,c.el);
-    else if(vid.readyState>1&&vid.videoWidth) cover(vid.videoWidth,vid.videoHeight,vid);
-  }
-  overlay(t);
-}
-function idle(){   /* gambar diam saat tidak diputar */
-  if(playing) return;
-  g.fillStyle='#000'; g.fillRect(0,0,1280,720);
-  const c=clips[0]; if(c&&c.type=='img') cover(c.el.naturalWidth,c.el.naturalHeight,c.el);
-  overlay(-1);
-  g.textAlign='center'; g.fillStyle='rgba(255,255,255,.6)'; g.font="500 28px 'DM Sans',sans-serif";
-  g.fillText(clips.length||hasA?'Tekan ▶ Putar untuk pratinjau':'Tambahkan lagu, gambar, atau video',640,680);
-}
-setInterval(idle,700);
-
-/* ---- Memutar ---- */
-function play(){
-  if(playing) return;
-  if(!total()) return say('Tambahkan lagu, gambar, atau video dulu.');
-  initAudio(); ac.resume();
-  vG.gain.value=hasA?0:1;                   // jika ada lagu, suara asli video dibisukan
-  cur=-1; t0=performance.now(); playing=true;
-  if(hasA){ aud.currentTime=0; aud.play(); }
-  requestAnimationFrame(loop);
-}
-function loop(){
-  if(!playing) return;
-  T=(hasA&&!aud.paused&&!aud.ended)?aud.currentTime:(performance.now()-t0)/1000;
-  if(T>=total()){ stop(); return; }
-  drawAt(T); requestAnimationFrame(loop);
-}
-function stop(){
-  if(!playing) return;
-  playing=false; aud.pause(); vid.pause();
-  if(rec&&rec.state!='inactive') rec.stop();
-  tap=-1; $('bTap').textContent='⏱ Mulai ketuk lirik';
-  say('Selesai.'); idle();
-}
-$('bPlay').onclick=play; $('bStop').onclick=stop;
-
-/* ---- Ketuk waktu lirik ---- */
 function doTap(){
   times[tap]=+T.toFixed(1); tap++; drawLines();
-  if(tap>=lines.length){ tap=-1; $('bTap').textContent='⏱ Mulai ketuk lirik'; say('Semua baris sudah ditandai. Putar untuk mengecek.'); }
-  else say('Berikutnya: '+lines[tap]);
+  if(tap>=lines.length){ tap=-1; $('bTap').textContent='⏱ Mulai ketuk'; say('Semua baris sudah ditandai.'); } else say('Berikutnya: '+lines[tap]);
 }
 $('bTap').onclick=()=>{
   if(!lines.length) return say('Tulis lirik dulu.');
-  if(tap<0){
-    times=lines.map(()=>null); tap=0; drawLines(); play();
-    $('bTap').textContent='Ketuk! (atau tekan Spasi)';
-    say('Ketuk tepat saat baris pertama dinyanyikan: '+lines[0]);
-  } else doTap();
+  if(tap<0){ times=lines.map(()=>null); tap=0; drawLines(); seek(0); play(); $('bTap').textContent='Ketuk! (atau Spasi)'; say('Ketuk saat baris pertama dinyanyikan: '+lines[0]); }
+  else doTap();
 };
+
+/* ---- Pintasan keyboard ---- */
 addEventListener('keydown',e=>{
-  if(e.code=='Space'&&tap>=0&&!['INPUT','TEXTAREA'].includes(e.target.tagName)){ e.preventDefault(); doTap(); }
+  if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  if(e.code=='Space'){ e.preventDefault(); tap>=0?doTap():(playing?pause():play()); }
+  if(e.key=='s'||e.key=='S') split();
+  if(e.key=='Delete') del();
 });
 
-/* ---- Ekspor: rekam kanvas + suara ---- */
+/* ---- Ekspor: rekam kanvas + suara (real-time) ---- */
 $('bExp').onclick=()=>{
-  if(playing) return say('Berhentikan pemutaran dulu.');
-  if(!total()) return say('Tambahkan lagu, gambar, atau video dulu.');
-  initAudio();
-  const s=cv.captureStream(30);
-  dest.stream.getAudioTracks().forEach(x=>s.addTrack(x));
+  if(!total()) return say('Tambahkan file dulu.');
+  pause(); seek(0);
+  const s=cv.captureStream(30); dest.stream.getAudioTracks().forEach(x=>s.addTrack(x));
   const mt=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));
   if(!mt) return say('Browser ini tidak mendukung ekspor. Pakai Chrome atau Edge.');
   chunks=[]; rec=new MediaRecorder(s,{mimeType:mt,videoBitsPerSecond:5e6});
   rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
   rec.onstop=()=>{
     const ext=mt.includes('mp4')?'mp4':'webm', a=$('dl');
-    a.href=URL.createObjectURL(new Blob(chunks,{type:mt.split(';')[0]}));
-    a.download='mab-video.'+ext; a.textContent='Unduh video (.'+ext+')'; a.classList.remove('hidden');
-    say('Ekspor selesai!'); rec=null;
+    a.href=URL.createObjectURL(new Blob(chunks,{type:mt.split(';')[0]})); a.download='mab-video.'+ext;
+    a.textContent='Unduh video (.'+ext+')'; a.classList.remove('hidden'); say('Ekspor selesai!'); rec=null;
   };
-  $('dl').classList.add('hidden');
-  rec.start(1000);
-  say('Merekam… biarkan tab ini terbuka sampai selesai ('+fmt(total())+').');
-  play();
+  $('dl').classList.add('hidden'); rec.start(1000);
+  say('Merekam… biarkan tab ini terbuka dan terlihat sampai selesai ('+fmt(total())+').'); play();
 };
-idle();
+
+renderTL(); props(); draw();
 </script>
 </body>
 </html>
