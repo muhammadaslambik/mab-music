@@ -203,7 +203,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 
 class GenerateRequest(BaseModel):
-    prompt: str = Field(..., min_length=3, max_length=512)       # gaya musik & penyanyi
+    prompt: str = Field(..., min_length=3, max_length=2000)       # gaya musik & penyanyi
     lyrics: str = Field("", max_length=4096)                      # lirik lagu
     duration: int = Field(60, ge=10, le=MAX_DURATION)             # detik
     vocal_language: str = Field("en", max_length=10)              # en, id, ja, zh, ...
