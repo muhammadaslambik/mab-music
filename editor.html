@@ -42,10 +42,26 @@ kbd{background:#2a2735;border-radius:4px;padding:0 5px;font-size:11px}
  <div id="top" class="grid gap-4 lg:gap-0 lg:[grid-template-columns:minmax(0,1fr)_14px_var(--rw)]" style="--rw:340px">
   <div class="min-w-0">
    <div id="pin" class="pb-1">
-    <div id="mons" class="grid gap-2">
-      <div id="mSrc" class="hidden"><p class="text-xs text-mist mb-1">Pratinjau file terpilih</p><div id="srcBox" class="rounded-xl border border-edge bg-black aspect-video overflow-hidden flex items-center justify-center text-xs text-mist">Pilih klip</div></div>
-      <div><canvas id="cv" width="1280" height="720" class="w-full max-h-[50vh] object-contain rounded-2xl border border-edge bg-black cursor-pointer" title="Klik untuk putar/jeda"></canvas></div>
-      <div id="mDet" class="hidden"><p class="text-xs text-mist mb-1">Detail (arahkan kursor/jari di layar utama)</p><canvas id="cv2" width="480" height="270" class="w-full rounded-xl border border-edge bg-black"></canvas></div>
+    <div id="stage" class="relative">
+      <canvas id="cv" width="1280" height="720" class="w-full max-h-[50vh] object-contain rounded-2xl border border-edge bg-black cursor-pointer" title="Klik untuk putar/jeda; seret teks untuk memindahkannya"></canvas>
+      <textarea id="tOv" class="absolute hidden" spellcheck="false" aria-label="Ketik teks langsung" style="color:transparent;caret-color:#fff;background:transparent;border:1px dashed #ff7a59;resize:none;overflow:hidden;padding:0;line-height:1.25;text-align:center;font-family:'DM Sans',sans-serif;outline:none"></textarea>
+      <div class="absolute inset-x-0 bottom-0 px-3 pb-2 pt-6 rounded-b-2xl bg-gradient-to-t from-black/85 to-transparent">
+        <div class="flex items-center gap-2 text-xs font-mono tabular-nums"><span id="t1">0:00:00.000</span><input id="sk" type="range" min="0" max="1000" value="0" class="flex-1" aria-label="Posisi pemutaran"><span id="t2">0:00:00.000</span></div>
+        <div class="flex items-center gap-2 mt-1 text-xs"><label class="flex items-center gap-1">Lompat ke <input id="jt" placeholder="m:ss" class="w-20 text-xs"></label><button id="jb" class="btn text-xs">Pergi</button></div>
+      </div>
+    </div>
+    <div id="mSrc" class="hidden mt-2">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-mist mb-1">
+        <label>Jumlah layar <select id="msN" class="text-xs"><option>1</option><option>2</option><option selected>4</option><option>6</option><option>8</option><option>10</option><option>20</option><option value="all">Semua klip</option></select></label>
+        <label>Putar <select id="msM" class="text-xs"><option value="one">Hanya yang dipilih (ringan)</option><option value="all">Semua bersamaan (berat)</option></select></label>
+        <label>Ukuran <input id="msZ" type="range" min="120" max="480" value="200" class="w-24 align-middle"></label>
+        <label>Isi <select id="msF" class="text-xs"><option value="contain">Pas</option><option value="cover">Penuh</option></select></label>
+        <label><input id="msD" type="checkbox"> Layar detail 3×</label>
+      </div>
+      <div class="flex gap-2">
+        <div id="mDet" class="hidden shrink-0 w-52"><canvas id="cv2" width="480" height="270" class="w-full rounded-xl border border-edge bg-black"></canvas><p class="text-[11px] text-mist">Arahkan kursor/jari di layar utama</p></div>
+        <div id="tiles" class="flex-1 flex gap-2 overflow-x-auto pb-1" style="overscroll-behavior-x:contain"></div>
+      </div>
     </div>
     <div class="flex flex-wrap gap-2 mt-3 items-center">
       <button id="bPlay" class="btn pri">▶ Putar</button>
@@ -54,9 +70,10 @@ kbd{background:#2a2735;border-radius:4px;padding:0 5px;font-size:11px}
       <label class="btn cursor-pointer">🎵 + Audio<input id="fA" type="file" accept="audio/*" multiple class="hidden"></label>
       <button id="bExp" class="btn" style="border-color:#ff7a59">⬇ Ekspor</button>
       <button id="bPin" class="btn" title="Layar pemutar tetap terlihat saat halaman digulir">📌 Sematkan</button>
-      <button id="bDual" class="btn" title="Tampilkan layar pratinjau file dan layar detail">▦ Layar ganda</button>
+      <button id="bDual" class="btn" title="Buka beberapa layar sekaligus">▦ Multi-layar</button>
+      <button id="bTxt" class="btn" title="Tambah teks di posisi garis merah">＋ Teks</button>
       <a id="dl" class="btn hidden text-lilac"></a>
-      <div class="ml-auto font-mono tabular-nums text-right leading-tight"><div id="t1" class="text-lg">0:00:00.000</div><div id="t2" class="text-xs text-mist">/ 0:00:00.000</div></div>
+      
     </div>
     <p id="st" class="text-sm text-mist mt-2 min-h-[20px]" role="status"></p>
     <div id="sp2" class="h-4 flex items-center justify-center cursor-row-resize" style="touch-action:none" title="Seret untuk mengubah tinggi layar"><i class="block w-14 h-1 rounded bg-edge"></i></div>
@@ -116,7 +133,7 @@ kbd{background:#2a2735;border-radius:4px;padding:0 5px;font-size:11px}
 /* Editor multi-trek MAB-Music: semua berjalan di browser pengguna (tanpa server). */
 const $=id=>document.getElementById(id), cv=$('cv'), g=cv.getContext('2d');
 let LH=44; const RH=24, MAXT=10;
-let dual=false, hov={x:640,y:360}, clips=[], sel=null, uid=0, Z=40, T=0, T0=0, t0=0, playing=false, rec=null, chunks=[], drag=null, tap=-1, lines=[], times=[];
+let dual=false, exporting=false, ms=false, tiles=[], solo=null, tsig='', hov={x:640,y:360}, clips=[], sel=null, uid=0, Z=40, T=0, T0=0, t0=0, playing=false, rec=null, chunks=[], drag=null, tap=-1, lines=[], times=[];
 const ac=new AudioContext(), dest=ac.createMediaStreamDestination(), master=ac.createGain();
 master.connect(ac.destination); master.connect(dest);
 const esc=s=>s.replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
@@ -133,7 +150,8 @@ const FX={none:['allpass',0,0],bass:['lowshelf',12,200],treble:['highshelf',10,3
 function setFx(c){ const p=FX[c.fx], f=c.f; f.type=p[0]; f.gain.value=p[1]; if(p[2]) f.frequency.value=p[2]; }
 function mk(o){
   const c=Object.assign({id:++uid,vol:1,fi:0,fo:0,fx:'none',s:0},o);
-  if(c.type=='i'){ c.el=new Image(); c.el.src=c.url; c.max=1e9; }
+  if(c.type=='t'){ c.max=1e9; }
+  else if(c.type=='i'){ c.el=new Image(); c.el.src=c.url; c.max=1e9; }
   else {
     c.el=document.createElement(c.type=='v'?'video':'audio'); c.el.preload='auto'; c.el.playsInline=true; c.el.src=c.url;
     const s=ac.createMediaElementSource(c.el); c.f=ac.createBiquadFilter(); c.g=ac.createGain();
@@ -170,7 +188,7 @@ function renderTL(){
     lab+='<div style="height:'+LH+'px;line-height:'+LH+'px;color:'+(isV?'#a78bfa':'#34d399')+'">'+(isV?'Video ':'Audio ')+n+'</div>';
   }
   clips.forEach(c=>{
-    const row=kind(c)=='v'?nv-1-c.track:nv+c.track, col=c.type=='a'?'linear-gradient(#34d399,#10b981)':c.type=='i'?'linear-gradient(#7dd3fc,#38bdf8)':'linear-gradient(#c4b5fd,#a78bfa)';
+    const row=kind(c)=='v'?nv-1-c.track:nv+c.track, col=c.type=='a'?'linear-gradient(#34d399,#10b981)':c.type=='t'?'linear-gradient(#fcd34d,#f59e0b)':c.type=='i'?'linear-gradient(#7dd3fc,#38bdf8)':'linear-gradient(#c4b5fd,#a78bfa)';
     h+='<div class="clip" data-id="'+c.id+'" style="left:'+c.at*Z+'px;width:'+Math.max(6,len(c)*Z)+'px;top:'+(RH+row*LH+3)+'px;height:'+(LH-6)+'px;line-height:'+(LH-6)+'px;background:'+col+(c===sel?';outline:2px solid #ff7a59':'')+'"><i class="h" data-h="l" style="left:0"></i><span class="px-2 block truncate">'+esc(c.name)+'</span><i class="h" data-h="r" style="right:0"></i></div>';
   });
   if(RNG) h+='<div class="absolute pointer-events-none" style="left:'+RNG[0]*Z+'px;width:'+(RNG[1]-RNG[0])*Z+'px;top:0;height:'+H+'px;background:rgba(255,122,89,.18);border-inline:1px solid #ff7a59"></div>';
@@ -178,7 +196,8 @@ function renderTL(){
   $('lab').innerHTML=lab; $('inn').style.width=W+'px'; $('inn').style.height=H+'px'; $('inn').innerHTML=h; movePH();
 }
 function movePH(){
-  const p=$('ph'); if(p) p.style.left=T*Z+'px'; $('t1').textContent=fmtMs(T); $('t2').textContent='/ '+fmtMs(total());
+  const p=$('ph'); if(p) p.style.left=T*Z+'px'; $('t1').textContent=fmtMs(T); $('t2').textContent=fmtMs(total()); const k=$('sk'); if(document.activeElement!==k) k.value=total()?T/total()*1000:0;
+  if((sel&&sel.type=='t')||!$('tOv').classList.contains('hidden')) tOvShow();
   const sc=$('sc'); if(playing&&T*Z>sc.scrollLeft+sc.clientWidth-30) sc.scrollLeft=T*Z-60;
 }
 let RNG=null, rg=null, pendAt=null;
@@ -221,7 +240,7 @@ $('sc').addEventListener('wheel',e=>{ if(!e.ctrlKey) return; e.preventDefault();
 function splitAt(t){
   const c=sel; if(!c||t<=c.at+.02||t>=c.at+len(c)-.02) return null;
   const cut=c.s+(t-c.at)*(c.sp||1);
-  const n=mk({type:c.type,url:c.url,name:c.name,track:c.track,at:t,s:cut,e:c.e,max:c.max,vol:c.vol,fi:0,fo:c.fo,fx:c.fx,sp:c.sp});
+  const n=mk({type:c.type,url:c.url,name:c.name,track:c.track,at:t,s:cut,e:c.e,max:c.max,vol:c.vol,fi:0,fo:c.fo,fx:c.fx,sp:c.sp,txt:c.txt,fs:c.fs,col:c.col,bg:c.bg,px:c.px,py:c.py,bold:c.bold,sh:c.sh});
   c.e=cut; c.fo=0; return n;
 }
 function split(){
@@ -235,17 +254,18 @@ function isolate(){      // bagian yang disorot menjadi klip sendiri
   splitAt(b); const n=splitAt(a); sel=n||c; RNG=null; showRg(); renderTL(); props(); return true;
 }
 function del(){
-  if(!sel) return; if(sel.el.pause) sel.el.pause();
+  if(!sel) return; if(sel.el&&sel.el.pause) sel.el.pause();
   clips=clips.filter(c=>c!==sel); sel=null; compact(); renderTL(); props(); seek(T);
 }
 $('bCut').onclick=split; $('bDel').onclick=del; $('bIso').onclick=isolate; $('bRmv').onclick=()=>{ if(isolate()) del(); }; $('bRgX').onclick=()=>{ RNG=null; showRg(); renderTL(); };
 
 /* ---- Panel klip terpilih ---- */
 function props(){
-  const p=$('pr'), c=sel; setTimeout(()=>{ if($('gal').open) renderGal(); srcMon(); },0);
+  const p=$('pr'), c=sel; setTimeout(()=>{ if($('gal').open) renderGal(); tilesCheck(); tOvShow(); },0);
   if(!c){ p.innerHTML='<p class="text-sm text-mist">Klik sebuah klip di timeline untuk mengatur suara, memotong, atau sinkron.</p>'; return; }
+  if(c.type=='t') return propsText(c);
   const fxo=[['none','Normal'],['bass','Bass tebal'],['treble','Treble jernih'],['phone','Suara telepon']].map(o=>'<option value="'+o[0]+'"'+(c.fx==o[0]?' selected':'')+'>'+o[1]+'</option>').join('');
-  const others=clips.filter(x=>x!==c&&x.type!='i'), mine=c.type!='i';
+  const others=clips.filter(x=>x!==c&&x.type!='i'&&x.type!='t'), mine=c.type!='i';
   let h='<p class="text-sm truncate mb-2">'+esc(c.name)+'</p>'+
     '<label class="text-xs text-mist block">Posisi mulai (detik, bisa 1 ms)<input id="pa" type="number" step="0.001" min="0" value="'+c.at.toFixed(3)+'" class="w-full"></label>';
   if(mine) h+='<label class="text-xs text-mist block mt-2">Kecepatan <span id="sv">'+(c.sp||1).toFixed(2)+'</span>×<input id="ps" type="range" min="0.25" max="4" step="0.05" value="'+(c.sp||1)+'" class="w-full"></label><div class="flex gap-1 mt-1" id="spb">'+[0.5,1,1.5,2].map(x=>'<button data-sp="'+x+'" class="btn text-xs">'+x+'×</button>').join('')+'</div>';
@@ -309,7 +329,7 @@ async function autoSync(c,r){
 function draw(){
   g.fillStyle='#000'; g.fillRect(0,0,1280,720);
   for(let t=0;t<MAXT;t++){        // trek video bawah digambar dulu, trek atas menimpa
-    const c=clips.find(c=>c.type!='a'&&c.track==t&&T>=c.at&&T<c.at+len(c)); if(!c) continue;
+    const c=clips.find(c=>c.type!='a'&&c.type!='t'&&c.track==t&&T>=c.at&&T<c.at+len(c)); if(!c) continue;
     const el=c.el, w=c.type=='i'?el.naturalWidth:el.videoWidth, h=c.type=='i'?el.naturalHeight:el.videoHeight;
     if(w&&(c.type=='i'||el.readyState>1)){ const r=Math.max(1280/w,720/h); g.drawImage(el,(1280-w*r)/2,(720-h*r)/2,w*r,h*r); }
   }
@@ -322,6 +342,7 @@ function draw(){
     if(lines[k+1]) lyric(lines[k+1],480,36,'rgba(255,255,255,.55)');
     g.shadowBlur=0;
   }
+  clips.filter(c=>c.type=='t'&&T>=c.at&&T<c.at+len(c)).sort((a,b)=>a.track-b.track).forEach(drawTxt);
   if(!clips.length){ g.fillStyle='rgba(255,255,255,.6)'; g.font="500 30px 'DM Sans',sans-serif"; g.fillText('Klik di sini untuk menambahkan video atau gambar',640,370); }
   if(dual) detail();
 }
@@ -329,6 +350,17 @@ const g2=$('cv2').getContext('2d');
 function detail(){      // layar detail: perbesaran 3× di sekitar kursor/jari
   const w=1280/3, h=720/3, sx=Math.max(0,Math.min(1280-w,hov.x-w/2)), sy=Math.max(0,Math.min(720-h,hov.y-h/2));
   g2.drawImage(cv,sx,sy,w,h,0,0,480,270);
+}
+function drawTxt(c){
+  const L=(c.txt||'').split('\n'), fs=c.fs||64, lh=fs*1.25;
+  g.font=(c.bold?'700 ':'500 ')+fs+"px 'DM Sans',sans-serif"; g.textAlign='center'; g.textBaseline='middle';
+  const w=Math.max(20,...L.map(s=>g.measureText(s).width)), hh=lh*L.length, x=c.px/100*1280, y=c.py/100*720;
+  c._box={x:x-w/2-16,y:y-hh/2-10,w:w+32,h:hh+20};
+  if(c.bg){ g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(c._box.x,c._box.y,c._box.w,c._box.h); }
+  g.shadowColor='#000'; g.shadowBlur=c.sh?10:0; g.fillStyle=c.col||'#fff';
+  L.forEach((s,i)=>g.fillText(s,x,y-hh/2+lh*(i+.5)));
+  g.shadowBlur=0; g.textBaseline='alphabetic';
+  if(c===sel&&!exporting){ g.strokeStyle='rgba(255,122,89,.85)'; g.setLineDash([6,4]); g.strokeRect(c._box.x,c._box.y,c._box.w,c._box.h); g.setLineDash([]); }
 }
 function lyric(s,y,size,col){
   g.font='700 '+size+"px 'DM Sans',sans-serif";
@@ -340,7 +372,7 @@ setInterval(()=>{ if(!playing) draw(); },400);
 /* ---- Memutar ---- */
 function sync(){
   clips.forEach(c=>{
-    if(c.type=='i') return;
+    if(c.type=='i'||c.type=='t') return;
     const sp=c.sp||1, L=len(c), lt=T-c.at, act=lt>=0&&lt<L, want=c.s+lt*sp;
     if(act){
       if(c.el.playbackRate!=sp) c.el.playbackRate=sp;
@@ -355,7 +387,7 @@ function loop(){
   if(!playing) return;
   T=T0+(performance.now()-t0)/1000;
   if(T>=total()){ T=total(); pause(); movePH(); draw(); return; }
-  sync(); draw(); movePH(); requestAnimationFrame(loop);
+  sync(); tilesUpdate(); draw(); movePH(); requestAnimationFrame(loop);
 }
 function play(){
   if(!total()) return say('Tambahkan file dulu.');
@@ -363,15 +395,16 @@ function play(){
   ac.resume(); playing=true; T0=T; t0=performance.now(); $('bPlay').textContent='❚❚ Jeda'; requestAnimationFrame(loop);
 }
 function pause(){
-  playing=false; clips.forEach(c=>c.el.pause&&c.el.pause()); $('bPlay').textContent='▶ Putar';
+  playing=false; clips.forEach(c=>c.el&&c.el.pause&&c.el.pause()); $('bPlay').textContent='▶ Putar';
   if(rec&&rec.state!='inactive') rec.stop();
+  tilesUpdate(true);
   tap=-1; $('bTap').textContent='⏱ Mulai ketuk';
 }
 function seek(t){
   T=Math.max(0,t);
   if(playing){ T0=T; t0=performance.now(); }
   else clips.forEach(c=>{ if(c.type=='v'&&T>=c.at&&T<c.at+len(c)) c.el.currentTime=c.s+(T-c.at)*(c.sp||1); });
-  movePH(); draw(); setTimeout(draw,150);
+  movePH(); draw(); setTimeout(draw,150); tilesUpdate(true);
 }
 $('bPlay').onclick=()=>playing?pause():play();
 $('bRew').onclick=()=>seek(0);
@@ -412,17 +445,28 @@ $('bExp').onclick=()=>{
   chunks=[]; rec=new MediaRecorder(s,{mimeType:mt,videoBitsPerSecond:5e6});
   rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
   rec.onstop=()=>{
-    const ext=mt.includes('mp4')?'mp4':'webm', a=$('dl');
+    exporting=false; const ext=mt.includes('mp4')?'mp4':'webm', a=$('dl');
     a.href=URL.createObjectURL(new Blob(chunks,{type:mt.split(';')[0]})); a.download='mab-video.'+ext;
     a.textContent='Unduh video (.'+ext+')'; a.classList.remove('hidden'); say('Ekspor selesai!'); rec=null;
   };
-  $('dl').classList.add('hidden'); rec.start(1000);
+  $('dl').classList.add('hidden'); exporting=true; $('tOv').classList.add('hidden'); rec.start(1000);
   say('Merekam… biarkan tab ini terbuka dan terlihat sampai selesai ('+fmt(total())+').'); play();
 };
 
 
 /* ---- Sematkan layar, geser panel (mouse & sentuh), tinggi trek ---- */
-cv.onclick=()=>{ if(!clips.length) $('fV').click(); else playing?pause():play(); };   // klik layar = putar/jeda
+const cpt=e=>{ const r=cv.getBoundingClientRect(), s=Math.min(r.width/1280,r.height/720), ox=(r.width-1280*s)/2, oy=(r.height-720*s)/2; return {x:(e.clientX-r.left-ox)/s,y:(e.clientY-r.top-oy)/s,s,ox,oy}; };
+let tdrag=null;
+cv.onpointerdown=e=>{
+  const p=cpt(e), hit=[...clips].reverse().find(c=>c.type=='t'&&c._box&&T>=c.at&&T<c.at+len(c)&&p.x>=c._box.x&&p.x<=c._box.x+c._box.w&&p.y>=c._box.y&&p.y<=c._box.y+c._box.h);
+  tdrag={hit,moved:false,ox:hit?p.x-hit.px/100*1280:0,oy:hit?p.y-hit.py/100*720:0};
+  if(hit){ sel=hit; renderTL(); props(); cv.setPointerCapture(e.pointerId); }
+};
+cv.onpointerup=()=>{      // klik kosong = putar/jeda; klik teks = ketik langsung
+  if(tdrag&&!tdrag.hit){ if(!clips.length) $('fV').click(); else playing?pause():play(); }
+  else if(tdrag&&!tdrag.moved){ tOvShow(); $('tOv').focus(); }
+  tdrag=null;
+};
 $('bPin').onclick=()=>{ const on=$('pin').classList.toggle('sticky'); ['top-0','z-20','bg-ink'].forEach(k=>$('pin').classList.toggle(k,on)); $('bPin').style.borderColor=on?'#a78bfa':''; $('bPin').textContent=on?'📌 Disematkan':'📌 Sematkan'; };
 function grip(id,fn){ const el=$(id); el.onpointerdown=e=>{ el.setPointerCapture(e.pointerId); el.onpointermove=fn; el.onpointerup=()=>{ el.onpointermove=null; }; }; }
 grip('sp1',e=>{ const r=$('top').getBoundingClientRect(); $('top').style.setProperty('--rw',Math.min(Math.max(r.right-e.clientX,240),r.width-380)+'px'); });
@@ -446,26 +490,101 @@ $('lxB').onclick=()=>{
 const mn=o=>{ $('dr').classList.toggle('-translate-x-full',!o); $('ov').classList.toggle('hidden',!o); };
 $('bMenu').onclick=()=>mn(true); $('ov').onclick=()=>mn(false);
 function setSp(c,v){ c.sp=v; $('sv').textContent=v.toFixed(2); renderTL(); seek(T); }
-cv.addEventListener('pointermove',e=>{ const r=cv.getBoundingClientRect(); hov={x:(e.clientX-r.left)/r.width*1280,y:(e.clientY-r.top)/r.height*720}; });
-$('bDual').onclick=()=>{
-  dual=!dual; ['mSrc','mDet'].forEach(i=>$(i).classList.toggle('hidden',!dual));
-  $('mons').classList.toggle('lg:[grid-template-columns:1fr_1.6fr_1fr]',dual);
-  $('bDual').style.borderColor=dual?'#a78bfa':''; $('srcBox').dataset.id=''; srcMon();
-};
-function srcMon(){      // layar pratinjau: memutar file asli dari klip terpilih, terpisah dari timeline
-  if(!dual) return; const c=sel, b=$('srcBox');
-  if(!c){ b.dataset.id=''; b.textContent='Pilih klip untuk pratinjau'; return; }
-  if(b.dataset.id==c.id) return; b.dataset.id=c.id;
-  b.innerHTML=c.type=='i'?'<img class="max-h-full">':c.type=='v'?'<video controls playsinline class="w-full h-full"></video>':'<audio controls class="w-full"></audio>';
-  b.firstChild.src=c.url+(c.type=='i'?'':'#t='+c.s);
+cv.addEventListener('pointermove',e=>{
+  const p=cpt(e); hov={x:p.x,y:p.y};
+  if(tdrag&&tdrag.hit){ const c=tdrag.hit; tdrag.moved=true; c.px=Math.min(100,Math.max(0,(p.x-tdrag.ox)/1280*100)); c.py=Math.min(100,Math.max(0,(p.y-tdrag.oy)/720*100)); if($('tx')){ $('tx').value=c.px; $('ty').value=c.py; } draw(); tOvShow(); }
+});
+/* ---- Multi-layar manual: pilih jumlah, mode putar, ukuran, isi ---- */
+const tsigOf=()=>$('msN').value+'|'+clips.filter(c=>c.type=='v'||c.type=='i').map(c=>c.id+':'+c.track).join(',');
+function tilesCheck(){ if(ms&&tsigOf()!=tsig){ tsig=tsigOf(); buildTiles(); } }
+function buildTiles(){
+  const box=$('tiles'); box.innerHTML=''; tiles=[];
+  const n=$('msN').value, list=clips.filter(c=>c.type=='v'||c.type=='i').sort((a,b)=>a.track-b.track||a.at-b.at).slice(0,n=='all'?1e9:+n);
+  if(!list.length) box.innerHTML='<p class="text-xs text-mist">Belum ada video/gambar.</p>';
+  if(!list.some(c=>c.id==solo)) solo=list[0]&&list[0].id;
+  list.forEach(c=>{
+    const d=document.createElement('div'); d.className='shrink-0 rounded-xl border-2 border-edge bg-black overflow-hidden cursor-pointer'; d.style.width=$('msZ').value+'px';
+    const v=document.createElement(c.type=='v'?'video':'img'); v.className='w-full aspect-video'; v.style.objectFit=$('msF').value; v.muted=true; v.playsInline=true; v.preload='metadata'; v.src=c.url;
+    const cap=document.createElement('p'); cap.className='text-[11px] px-1 truncate'; cap.textContent=c.name;
+    d.append(v,cap); d.onclick=()=>{ solo=c.id; sel=c; renderTL(); props(); tilesUpdate(true); };
+    box.appendChild(d); tiles.push({c,v,d});
+  });
+  tilesUpdate(true);
 }
+function tilesUpdate(force){
+  if(!ms) return; const all=$('msM').value=='all';
+  tiles.forEach(({c,v,d})=>{
+    d.style.borderColor=c.id==solo?'#ff7a59':''; if(c.type!='v') return;
+    const sp=c.sp||1, lt=T-c.at, act=lt>=0&&lt<len(c), want=Math.min(c.e,Math.max(c.s,c.s+lt*sp));
+    d.style.opacity=act?1:.45;
+    if(playing&&act&&(all||c.id==solo)){
+      if(v.playbackRate!=sp) v.playbackRate=sp;
+      if(v.paused||Math.abs(v.currentTime-want)>.3){ v.currentTime=want; v.play().catch(()=>{}); }
+    } else { if(!v.paused) v.pause(); if((force||!playing)&&Math.abs(v.currentTime-want)>.04) v.currentTime=want; }
+  });
+}
+$('bDual').onclick=()=>{
+  ms=!ms; $('mSrc').classList.toggle('hidden',!ms); $('bDual').style.borderColor=ms?'#a78bfa':'';
+  tsig=''; if(ms) tilesCheck(); else { $('tiles').innerHTML=''; tiles=[]; }
+};
+$('msN').onchange=tilesCheck; $('msM').onchange=()=>tilesUpdate(true);
+$('msZ').oninput=()=>tiles.forEach(t=>t.d.style.width=$('msZ').value+'px');
+$('msF').onchange=()=>tiles.forEach(t=>t.v.style.objectFit=$('msF').value);
+$('msD').onchange=e=>{ dual=e.target.checked; $('mDet').classList.toggle('hidden',!dual); };
+
+/* ---- Teks langsung di layar ---- */
+function addText(){
+  const nv=lanes('v'), track=clips.some(c=>kind(c)=='v')?Math.min(nv,MAXT-1):0;
+  add(mk({type:'t',name:'Teks',track,at:T,s:0,e:4,txt:'Ketik teks di sini',fs:64,col:'#ffffff',bg:0,px:50,py:85,bold:1,sh:1}));
+  setTimeout(()=>{ tOvShow(); $('tOv').focus(); $('tOv').select(); },60);
+}
+function tOvShow(){      // kotak ketik transparan tepat di atas teks pada layar
+  const o=$('tOv'), c=sel;
+  if(!c||c.type!='t'||!c._box||exporting||!(T>=c.at&&T<c.at+len(c))){ o.classList.add('hidden'); return; }
+  const p=cpt({clientX:0,clientY:0}), st=$('stage').getBoundingClientRect(), cr=cv.getBoundingClientRect();
+  o.classList.remove('hidden');
+  o.style.left=(cr.left-st.left+p.ox+c._box.x*p.s)+'px'; o.style.top=(cr.top-st.top+p.oy+c._box.y*p.s)+'px';
+  o.style.width=c._box.w*p.s+'px'; o.style.height=c._box.h*p.s+'px'; o.style.fontSize=c.fs*p.s+'px'; o.style.fontWeight=c.bold?700:500; o.style.paddingTop=(10*p.s)+'px';
+  if(o.dataset.id!=c.id){ o.value=c.txt; o.dataset.id=c.id; }
+}
+$('tOv').oninput=e=>{ const c=sel; c.txt=e.target.value; c.name=(c.txt.split('\n')[0]||'Teks').slice(0,24); if($('tt')) $('tt').value=c.txt; renderTL(); draw(); };
+function propsText(c){
+  const p=$('pr'), pos=[[15,12],[50,12],[85,12],[15,50],[50,50],[85,50],[15,88],[50,88],[85,88]];
+  p.innerHTML='<label class="text-xs text-mist block">Teks (boleh diketik langsung di layar)<textarea id="tt" rows="3" class="w-full text-sm">'+esc(c.txt)+'</textarea></label>'+
+   '<label class="text-xs text-mist block mt-2">Posisi mulai (detik)<input id="pa" type="number" step="0.001" min="0" value="'+c.at.toFixed(3)+'" class="w-full"></label>'+
+   '<label class="text-xs text-mist block mt-2">Ukuran huruf <span id="fv">'+c.fs+'</span><input id="fs" type="range" min="16" max="200" value="'+c.fs+'" class="w-full"></label>'+
+   '<div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-mist"><label>Warna <input id="tc" type="color" value="'+c.col+'"></label><label><input id="tb" type="checkbox"'+(c.bold?' checked':'')+'> Tebal</label><label><input id="tk" type="checkbox"'+(c.bg?' checked':'')+'> Kotak</label><label><input id="th" type="checkbox"'+(c.sh?' checked':'')+'> Bayangan</label></div>'+
+   '<p class="text-xs text-mist mt-3 mb-1">Posisi otomatis</p><div class="grid grid-cols-3 gap-1 w-28">'+pos.map((q,i)=>'<button data-i="'+i+'" class="btn text-xs" aria-label="Posisi '+(i+1)+'">•</button>').join('')+'</div>'+
+   '<label class="text-xs text-mist block mt-2">Geser kiri-kanan<input id="tx" type="range" min="0" max="100" value="'+c.px+'" class="w-full"></label>'+
+   '<label class="text-xs text-mist block mt-1">Geser atas-bawah<input id="ty" type="range" min="0" max="100" value="'+c.py+'" class="w-full"></label>'+
+   '<p class="text-xs text-mist mt-2">Lama tayang: seret tepi kanan klip teks di timeline. Seret teks di layar untuk memindahnya.</p>';
+  const upd=()=>{ c.name=(c.txt.split('\n')[0]||'Teks').slice(0,24); renderTL(); draw(); tOvShow(); };
+  $('tt').oninput=e=>{ c.txt=e.target.value; $('tOv').value=c.txt; upd(); };
+  $('pa').onchange=e=>{ c.at=Math.max(0,+e.target.value); renderTL(); seek(T); };
+  $('fs').oninput=e=>{ c.fs=+e.target.value; $('fv').textContent=c.fs; upd(); };
+  $('tc').oninput=e=>{ c.col=e.target.value; draw(); };
+  $('tb').onchange=e=>{ c.bold=e.target.checked?1:0; upd(); }; $('tk').onchange=e=>{ c.bg=e.target.checked?1:0; draw(); }; $('th').onchange=e=>{ c.sh=e.target.checked?1:0; draw(); };
+  $('tx').oninput=e=>{ c.px=+e.target.value; upd(); }; $('ty').oninput=e=>{ c.py=+e.target.value; upd(); };
+  p.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{ const q=pos[+b.dataset.i]; c.px=q[0]; c.py=q[1]; $('tx').value=q[0]; $('ty').value=q[1]; upd(); });
+}
+$('bTxt').onclick=addText;
+
+/* ---- Bilah di dalam layar: geser posisi & lompat ke waktu ---- */
+$('sk').oninput=e=>seek(+e.target.value/1000*total());
+function jump(){
+  const s=$('jt').value.trim(); if(!s) return; const q=s.split(':').map(Number);
+  if(q.some(isNaN)) return say('Format waktu: menit:detik, contoh 2:30 atau 1:02:30.5');
+  seek(q.reduce((a,x)=>a*60+x,0)); $('jt').value='';
+}
+$('jb').onclick=jump; $('jt').onkeydown=e=>{ if(e.key=='Enter') jump(); };
+
 function renderGal(){
   const box=$('galList'); box.innerHTML='';
   if(!clips.length){ box.innerHTML='<p class="text-sm text-mist">Belum ada klip.</p>'; return; }
   [...clips].sort((a,b)=>a.at-b.at).forEach(c=>{
     const d=document.createElement('div'); d.className='shrink-0 w-44 rounded-xl border border-edge bg-ink p-2 cursor-pointer'+(c===sel?' ring-2 ring-ember':'');
     let th;
-    if(c.type=='a'){ th=document.createElement('div'); th.className='aspect-video rounded-lg bg-edge flex items-center justify-center text-2xl'; th.textContent='🎵'; }
+    if(c.type=='a'||c.type=='t'){ th=document.createElement('div'); th.className='aspect-video rounded-lg bg-edge flex items-center justify-center text-2xl'; th.textContent=c.type=='t'?'T':'🎵'; }
     else {
       th=document.createElement(c.type=='i'?'img':'video'); th.className='w-full aspect-video object-cover rounded-lg bg-black';
       if(c.type=='v'){ th.muted=true; th.preload='metadata'; th.src=c.url+'#t='+c.s; th.onmouseenter=()=>{ th.currentTime=c.s; th.play().catch(()=>{}); }; th.onmouseleave=()=>th.pause(); }
