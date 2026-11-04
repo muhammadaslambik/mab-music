@@ -1,0 +1,11 @@
+body{background:#0e0d14;color:#ece9f5;font-family:'DM Sans',system-ui,sans-serif}
+h1,h2{font-family:'Bricolage Grotesque',system-ui,sans-serif}
+input,textarea,select{background:#0e0d14;border:1px solid #2a2735;border-radius:8px;padding:5px 8px;color:inherit}
+.btn{padding:7px 12px;border-radius:10px;border:1px solid #2a2735;font-size:14px;background:#17151f;cursor:pointer;transition:border-color .15s}
+.btn:hover{border-color:#a78bfa}
+.pri{background:#ff7a59;color:#0e0d14;font-weight:600;border:0}
+.card{background:#17151f;border:1px solid #2a2735;border-radius:16px;padding:14px}
+.clip{position:absolute;height:38px;border-radius:7px;color:#0e0d14;font-size:11px;font-weight:600;line-height:38px;cursor:grab;overflow:hidden;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.h{position:absolute;top:0;bottom:0;width:7px;background:rgba(0,0,0,.35);cursor:ew-resize}
+kbd{background:#2a2735;border-radius:4px;padding:0 5px;font-size:11px}
+:focus-visible{outline:2px solid #a78bfa;outline-offset:2px}
