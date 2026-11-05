@@ -8,7 +8,7 @@ const esc=s=>s.replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 const fmt=s=>{ s=Math.max(0,s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=Math.floor(s%60); return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0'); };
 const fmtMs=s=>{ s=Math.max(0,s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return h+':'+String(m).padStart(2,'0')+':'+x.toFixed(3).padStart(6,'0'); };
 const say=m=>$('st').textContent=m;
-const kind=c=>c.type=='a'?'a':'v';                         // 'v' = trek video/gambar, 'a' = trek audio
+const kind=c=>c.type;                         // 'v' = trek video/gambar, 'a' = trek audio
 const lanes=k=>Math.min(MAXT,Math.max(1,1+Math.max(-1,...clips.filter(c=>kind(c)==k).map(c=>c.track))));
 const len=c=>(c.e-c.s)/(c.sp||1);                         // panjang di timeline (memperhitungkan kecepatan)
 const total=()=>clips.reduce((m,c)=>Math.max(m,c.at+len(c)),0);

@@ -16,7 +16,7 @@ function add(c){ sel=c; compact(); renderTL(); props(); seek(T); }
 function load(f){
   const url=URL.createObjectURL(f), k=f.type.split('/')[0], type=k=='image'?'i':k=='video'?'v':k=='audio'?'a':null;
   if(!type) return say('Jenis file tidak didukung: '+f.name);
-  const kd=type=='a'?'a':'v', used=clips.some(c=>kind(c)==kd), nl=lanes(kd);
+  const kd=type, used=clips.some(c=>kind(c)==kd), nl=lanes(kd);
   const track=used?Math.min(nl,MAXT-1):0;                                // file baru = trek baru
   if(used&&nl>=MAXT) say('Trek sudah penuh (10), file ditaruh di trek terakhir.');
   const o={type,url,name:f.name,track,at:pendAt??insAt(type),s:0};
@@ -26,6 +26,6 @@ function load(f){
 }
 ['fV','fA'].forEach(id=>$(id).onchange=e=>{ [...e.target.files].forEach(load); e.target.value=''; pendAt=null; });
 function compact(){      // buang trek kosong di tengah
-  ['v','a'].forEach(k=>{ const cs=clips.filter(c=>kind(c)==k), u=[...new Set(cs.map(c=>c.track))].sort((a,b)=>a-b); cs.forEach(c=>c.track=u.indexOf(c.track)); });
+  ['v','i','a','t'].forEach(k=>{ const cs=clips.filter(c=>kind(c)==k), u=[...new Set(cs.map(c=>c.track))].sort((a,b)=>a-b); cs.forEach(c=>c.track=u.indexOf(c.track)); });
 }
 

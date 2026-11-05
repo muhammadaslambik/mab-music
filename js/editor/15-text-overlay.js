@@ -1,6 +1,6 @@
 /* ---- Teks langsung di layar ---- */
 function addText(){
-  const nv=lanes('v'), track=clips.some(c=>kind(c)=='v')?Math.min(nv,MAXT-1):0;
+  const track=freeLane('t',insAt('t'),insEnd('t',4));
   add(mk({type:'t',name:'Teks',track,at:insAt('t'),s:0,e:insEnd('t',4),txt:'Ketik teks di sini',fs:64,col:'#ffffff',bg:0,px:50,py:85,bold:1,sh:1}));
   setTimeout(()=>{ tOvShow(); $('tOv').focus(); $('tOv').select(); },60);
 }

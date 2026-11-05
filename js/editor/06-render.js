@@ -1,8 +1,8 @@
 /* ---- Menggambar frame ---- */
 function draw(){
   g.fillStyle='#000'; g.fillRect(0,0,1280,720);
-  for(let t=0;t<MAXT;t++){        // trek video bawah digambar dulu, trek atas menimpa
-    const c=clips.find(c=>c.type!='a'&&c.type!='t'&&c.track==t&&T>=c.at&&T<c.at+len(c)); if(!c) continue;
+  for(const fam of ['v','i']) for(let t=0;t<MAXT;t++){        // trek video bawah digambar dulu, trek atas menimpa
+    const c=clips.find(c=>c.type==fam&&c.track==t&&T>=c.at&&T<c.at+len(c)); if(!c) continue;
     const el=c.el, w=c.type=='i'?el.naturalWidth:el.videoWidth, h=c.type=='i'?el.naturalHeight:el.videoHeight;
     if(w&&(c.type=='i'||el.readyState>1)){ const r=Math.max(1280/w,720/h); g.drawImage(el,(1280-w*r)/2,(720-h*r)/2,w*r,h*r); }
   }
