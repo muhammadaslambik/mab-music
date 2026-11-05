@@ -19,10 +19,10 @@ function load(f){
   const kd=type=='a'?'a':'v', used=clips.some(c=>kind(c)==kd), nl=lanes(kd);
   const track=used?Math.min(nl,MAXT-1):0;                                // file baru = trek baru
   if(used&&nl>=MAXT) say('Trek sudah penuh (10), file ditaruh di trek terakhir.');
-  const o={type,url,name:f.name,track,at:pendAt??T,s:0};
-  if(type=='i') return add(mk({...o,e:5}));
+  const o={type,url,name:f.name,track,at:pendAt??insAt(type),s:0};
+  if(type=='i') return add(mk({...o,e:insEnd('i',5)}));
   const p=document.createElement(type=='v'?'video':'audio'); p.preload='metadata';
-  p.onloadedmetadata=()=>add(mk({...o,e:p.duration,max:p.duration})); p.src=url;
+  p.onloadedmetadata=()=>add(mk({...o,e:insEnd(type,p.duration),max:p.duration})); p.src=url;
 }
 ['fV','fA'].forEach(id=>$(id).onchange=e=>{ [...e.target.files].forEach(load); e.target.value=''; pendAt=null; });
 function compact(){      // buang trek kosong di tengah

@@ -1,7 +1,7 @@
 /* ---- Teks langsung di layar ---- */
 function addText(){
   const nv=lanes('v'), track=clips.some(c=>kind(c)=='v')?Math.min(nv,MAXT-1):0;
-  add(mk({type:'t',name:'Teks',track,at:T,s:0,e:4,txt:'Ketik teks di sini',fs:64,col:'#ffffff',bg:0,px:50,py:85,bold:1,sh:1}));
+  add(mk({type:'t',name:'Teks',track,at:insAt('t'),s:0,e:insEnd('t',4),txt:'Ketik teks di sini',fs:64,col:'#ffffff',bg:0,px:50,py:85,bold:1,sh:1}));
   setTimeout(()=>{ tOvShow(); $('tOv').focus(); $('tOv').select(); },60);
 }
 function tOvShow(){      // kotak ketik transparan tepat di atas teks pada layar
@@ -16,7 +16,7 @@ function tOvShow(){      // kotak ketik transparan tepat di atas teks pada layar
 $('tOv').oninput=e=>{ const c=sel; c.txt=e.target.value; c.name=(c.txt.split('\n')[0]||'Teks').slice(0,24); if($('tt')) $('tt').value=c.txt; renderTL(); draw(); };
 function propsText(c){
   const p=$('pr'), pos=[[15,12],[50,12],[85,12],[15,50],[50,50],[85,50],[15,88],[50,88],[85,88]];
-  p.innerHTML='<label class="text-xs text-mist block">Teks (boleh diketik langsung di layar)<textarea id="tt" rows="3" class="w-full text-sm">'+esc(c.txt)+'</textarea></label>'+
+  p.innerHTML=typeBadge(c)+'<label class="text-xs text-mist block">Teks (boleh diketik langsung di layar)<textarea id="tt" rows="3" class="w-full text-sm">'+esc(c.txt)+'</textarea></label>'+
    '<label class="text-xs text-mist block mt-2">Posisi mulai (detik)<input id="pa" type="number" step="0.001" min="0" value="'+c.at.toFixed(3)+'" class="w-full"></label>'+
    '<label class="text-xs text-mist block mt-2">Ukuran huruf <span id="fv">'+c.fs+'</span><input id="fs" type="range" min="16" max="200" value="'+c.fs+'" class="w-full"></label>'+
    '<div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-mist"><label>Warna <input id="tc" type="color" value="'+c.col+'"></label><label><input id="tb" type="checkbox"'+(c.bold?' checked':'')+'> Tebal</label><label><input id="tk" type="checkbox"'+(c.bg?' checked':'')+'> Kotak</label><label><input id="th" type="checkbox"'+(c.sh?' checked':'')+'> Bayangan</label></div>'+
