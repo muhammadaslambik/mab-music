@@ -1,7 +1,20 @@
 """MAB-Transcribe backend (Google Colab T4): faster-whisper + optional vocal separation + lyric matching + URL download."""
-import os, re, uuid, glob, queue, shutil, difflib, tempfile, threading, subprocess
+import os, re, uuid, glob, wave, queue, shutil, difflib, tempfile, threading, subprocess
+import numpy as np
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+def _preload_cuda_libs():
+    """Colab may ship CUDA 13 while CTranslate2 wants CUDA 12 libs: load the pip 'nvidia-*-cu12' copies first."""
+    import ctypes
+    for mod, pat in (("nvidia.cublas.lib", "libcublas.so*"), ("nvidia.cudnn.lib", "libcudnn.so*")):
+        try:
+            pkg = __import__(mod, fromlist=["x"])
+            for f in sorted(glob.glob(os.path.join(list(pkg.__path__)[0], pat))):
+                ctypes.CDLL(f, mode=ctypes.RTLD_GLOBAL)
+        except Exception:
+            pass
+_preload_cuda_libs()
 
 app = FastAPI(title="MAB-Transcribe")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -80,6 +93,17 @@ def separate(path, d):
     except Exception:
         return None
 
+def to_audio(path, d):
+    """Decode any audio/video to mono 16 kHz float32 with ffmpeg (avoids PyAV version problems)."""
+    out = os.path.join(d, "16k.wav")
+    r = subprocess.run(["ffmpeg", "-y", "-i", path, "-vn", "-ac", "1", "-ar", "16000", "-f", "wav", out],
+                       capture_output=True, text=True, timeout=600)
+    if r.returncode or not os.path.exists(out):
+        raise RuntimeError("Gagal membaca audio: " + r.stderr[-150:])
+    with wave.open(out, "rb") as w:
+        raw = w.readframes(w.getnframes())
+    return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+
 def run(job):
     j = JOBS[job["id"]]
     try:
@@ -89,8 +113,9 @@ def run(job):
         if job["separate"]:
             j["message"] = "Memisahkan vokal… (pertama kali memasang demucs, ±2 menit)"; path = separate(path, job["dir"]) or path
         j["message"] = "Mentranskripsi dengan model " + job["model"] + "…"
+        audio = to_audio(path, job["dir"])
         segs, info = load_model(job["model"]).transcribe(
-            path, language=job["lang"] or None, beam_size=5, word_timestamps=True, condition_on_previous_text=False,
+            audio, language=job["lang"] or None, beam_size=5, word_timestamps=True, condition_on_previous_text=False,
             vad_filter=False, initial_prompt=(job["lyrics"][:400] or None))
         segs = list(segs)
         lines = [l.strip() for l in job["lyrics"].splitlines() if l.strip()]
