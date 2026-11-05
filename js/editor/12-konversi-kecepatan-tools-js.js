@@ -1,5 +1,5 @@
 /* ---- Konversi & kecepatan (tools.js) ---- */
-MAB.mount($('cvMount'));
+/* konversi dipindah ke halaman terpisah (index.html#convert) */
 $('lxB').onclick=()=>{
   if(!lines.length) return say('Tulis lirik dulu di panel Lirik berjalan.');
   const fm=$('lx').value, sep=fm=='srt'?',':'.', st=i=>times[i]??i*3, en=i=>times[i+1]??st(i)+3;

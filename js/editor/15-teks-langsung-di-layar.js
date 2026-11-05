@@ -5,7 +5,7 @@ function addText(){
   setTimeout(()=>{ tOvShow(); $('tOv').focus(); $('tOv').select(); },60);
 }
 function tOvShow(){      // kotak ketik transparan tepat di atas teks pada layar
-  const o=$('tOv'), c=sel;
+  const o=$('tOv'), c=sel; $('stage').classList.toggle('edt',!!(c&&c.type=='t'));
   if(!c||c.type!='t'||!c._box||exporting||!(T>=c.at&&T<c.at+len(c))){ o.classList.add('hidden'); return; }
   const p=cpt({clientX:0,clientY:0}), st=$('stage').getBoundingClientRect(), cr=cv.getBoundingClientRect();
   o.classList.remove('hidden');

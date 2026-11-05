@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={theme:{extend:{colors:{ink:"#0e0d14",panel:"#17151f",edge:"#2a2735",mist:"#8d88a3",lilac:"#a78bfa",ember:"#ff7a59"}}}}</script>
-<link rel="stylesheet" href="css/editor.css?v=2">
+<link rel="stylesheet" href="css/editor.css?v=3">
 </head>
 <body class="min-h-screen">
 <header class="px-5 py-3 border-b border-edge flex items-center gap-4">
@@ -33,7 +33,7 @@
     <div id="stage" class="relative">
       <canvas id="cv" width="1280" height="720" class="w-full max-h-[50vh] object-contain rounded-2xl border border-edge bg-black cursor-pointer" title="Klik untuk putar/jeda; seret teks untuk memindahkannya"></canvas>
       <textarea id="tOv" class="absolute hidden" spellcheck="false" aria-label="Ketik teks langsung" style="color:transparent;caret-color:#fff;background:transparent;border:1px dashed #ff7a59;resize:none;overflow:hidden;padding:0;line-height:1.25;text-align:center;font-family:'DM Sans',sans-serif;outline:none"></textarea>
-      <div class="absolute inset-x-0 bottom-0 px-3 pb-2 pt-6 rounded-b-2xl bg-gradient-to-t from-black/85 to-transparent">
+      <div id="ctl" class="absolute inset-x-0 bottom-0 px-3 pb-2 pt-6 rounded-b-2xl bg-gradient-to-t from-black/85 to-transparent">
         <div class="flex items-center gap-2 text-xs font-mono tabular-nums"><span id="t1">0:00:00.000</span><input id="sk" type="range" min="0" max="1000" value="0" class="flex-1" aria-label="Posisi pemutaran"><span id="t2">0:00:00.000</span></div>
         <div class="flex items-center gap-2 mt-1 text-xs"><label class="flex items-center gap-1">Lompat ke <input id="jt" placeholder="m:ss" class="w-20 text-xs"></label><button id="jb" class="btn text-xs">Pergi</button></div>
       </div>
@@ -109,7 +109,7 @@
       <p class="mt-3 text-xs">Catatan: editor hanya menganalisis 180 detik pertama tiap file, dan kedua rekaman harus menangkap suara yang sama. Kalau gagal, ia akan memberi tahu.</p>
     </details>
     <details class="card"><summary class="cursor-pointer text-lg" style="font-family:'Bricolage Grotesque'">Konversi &amp; kecepatan</summary>
-      <div id="cvMount" class="mt-2"></div>
+      <a href="index.html#convert" target="_blank" rel="noopener" class="btn block text-center mt-2 text-sm">Buka Konversi di tab baru</a><p class="text-xs text-mist mt-1">Konversi dikerjakan di halaman terpisah agar tidak mengganggu susunan yang sedang diedit.</p>
       <div class="mt-3 pt-3 border-t border-edge"><p class="text-xs text-mist mb-1">Lirik editor → file teks</p><div class="flex gap-2"><select id="lx" class="flex-1"><option value="srt">.srt</option><option value="vtt">.vtt</option><option value="lrc">.lrc</option><option value="txt">.txt</option></select><button id="lxB" class="btn text-sm">Buat &amp; unduh</button></div></div>
     </details>
   </aside>
@@ -117,24 +117,24 @@
 </main>
 
 <script src="tools.js"></script>
-<script src="js/editor/00-inti.js?v=2"></script>
-<script src="js/editor/01-klip.js?v=2"></script>
-<script src="js/editor/02-timeline.js?v=2"></script>
-<script src="js/editor/03-potong-hapus.js?v=2"></script>
-<script src="js/editor/04-panel-klip-terpilih.js?v=2"></script>
-<script src="js/editor/05-sinkron-otomatis.js?v=2"></script>
-<script src="js/editor/06-menggambar-frame.js?v=2"></script>
-<script src="js/editor/07-memutar.js?v=2"></script>
-<script src="js/editor/08-lirik.js?v=2"></script>
-<script src="js/editor/09-pintasan-keyboard.js?v=2"></script>
-<script src="js/editor/10-ekspor.js?v=2"></script>
-<script src="js/editor/11-sematkan-layar-geser-panel-mouse-sentuh-tinggi-trek.js?v=2"></script>
-<script src="js/editor/12-konversi-kecepatan-tools-js.js?v=2"></script>
-<script src="js/editor/13-menu-kecepatan-klip-layar-ganda-galeri.js?v=2"></script>
-<script src="js/editor/14-multi.js?v=2"></script>
-<script src="js/editor/15-teks-langsung-di-layar.js?v=2"></script>
-<script src="js/editor/16-bilah-di-dalam-layar.js?v=2"></script>
+<script src="js/editor/00-inti.js?v=3"></script>
+<script src="js/editor/01-klip.js?v=3"></script>
+<script src="js/editor/02-timeline.js?v=3"></script>
+<script src="js/editor/03-potong-hapus.js?v=3"></script>
+<script src="js/editor/04-panel-klip-terpilih.js?v=3"></script>
+<script src="js/editor/05-sinkron-otomatis.js?v=3"></script>
+<script src="js/editor/06-menggambar-frame.js?v=3"></script>
+<script src="js/editor/07-memutar.js?v=3"></script>
+<script src="js/editor/08-lirik.js?v=3"></script>
+<script src="js/editor/09-pintasan-keyboard.js?v=3"></script>
+<script src="js/editor/10-ekspor.js?v=3"></script>
+<script src="js/editor/11-sematkan-layar-geser-panel-mouse-sentuh-tinggi-trek.js?v=3"></script>
+<script src="js/editor/12-konversi-kecepatan-tools-js.js?v=3"></script>
+<script src="js/editor/13-menu-kecepatan-klip-layar-ganda-galeri.js?v=3"></script>
+<script src="js/editor/14-multi.js?v=3"></script>
+<script src="js/editor/15-teks-langsung-di-layar.js?v=3"></script>
+<script src="js/editor/16-bilah-di-dalam-layar.js?v=3"></script>
 
-<script src="js/editor/17-galeri.js?v=2"></script>
+<script src="js/editor/17-galeri.js?v=3"></script>
 </body>
 </html>
