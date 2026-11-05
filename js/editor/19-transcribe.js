@@ -53,7 +53,7 @@ async function transcribe(src,model,lang,out){
    '<label class="text-xs text-mist block mt-2">Sumber<select id="trSrc" class="w-full"><option value="clip">Klip audio/video terpilih</option><option value="file">File lain…</option></select></label>'+
    '<input id="trFile" type="file" accept="audio/*,video/*" class="hidden w-full text-sm mt-1">'+
    '<div class="flex gap-2 mt-2 text-xs text-mist"><label class="flex-1">Model<select id="trMod" class="w-full"><option value="Xenova/whisper-tiny">Tiny (±40 MB, cepat)</option><option value="Xenova/whisper-base" selected>Base (±75 MB, seimbang)</option><option value="Xenova/whisper-small">Small (±250 MB, akurat, lambat)</option></select></label>'+
-   '<label class="flex-1">Bahasa<select id="trLang" class="w-full"><option value="">Otomatis</option><option value="indonesian">Indonesia</option><option value="english">Inggris</option><option value="malay">Melayu</option><option value="japanese">Jepang</option><option value="korean">Korea</option><option value="chinese">Mandarin</option></select></label></div>'+
+   '<label class="flex-1">Bahasa<select id="trLang" class="w-full"><option value="indonesian" selected>Indonesia</option><option value="">Otomatis</option><option value="english">Inggris</option><option value="malay">Melayu</option><option value="japanese">Jepang</option><option value="korean">Korea</option><option value="chinese">Mandarin</option></select></label></div>'+
    '<button id="trGo" class="btn w-full mt-2 text-sm">✨ Buat teks otomatis</button><p id="trSt" class="text-xs text-mist mt-2 min-h-[18px]" role="status"></p>'+
    '<p class="text-[11px] text-mist mt-1">Dari URL (YouTube, TikTok, dll.): butuh backend Colab, menyusul.</p>';
   $('ly').closest('details').before(card);
