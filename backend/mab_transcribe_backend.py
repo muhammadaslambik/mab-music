@@ -104,6 +104,20 @@ def to_audio(path, d):
         raw = w.readframes(w.getnframes())
     return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
 
+HALLU = {"terima kasih", "terima kasih telah menonton", "terima kasih sudah menonton", "terima kasih banyak", "sampai jumpa",
+         "sampai jumpa lagi", "thanks for watching", "thank you", "thank you for watching", "subtitle by the amara org community"}
+
+def keep_seg(s):
+    """Drop typical Whisper hallucinations on silence/instrumental parts, and segments it is unsure about."""
+    t = " ".join(norm(s.text))
+    if not t or t in HALLU:
+        return False
+    if s.no_speech_prob > 0.6 and s.avg_logprob < -1.0:
+        return False
+    if s.compression_ratio > 2.4:          # looping/repeated text
+        return False
+    return True
+
 def run(job):
     j = JOBS[job["id"]]
     try:
@@ -117,7 +131,7 @@ def run(job):
         segs, info = load_model(job["model"]).transcribe(
             audio, language=job["lang"] or None, beam_size=5, word_timestamps=True, condition_on_previous_text=False,
             vad_filter=False, initial_prompt=(job["lyrics"][:400] or None))
-        segs = list(segs)
+        segs = [s for s in segs if keep_seg(s)]
         lines = [l.strip() for l in job["lyrics"].splitlines() if l.strip()]
         if lines:
             words = [{"t": x, "s": w.start} for s in segs for w in (s.words or []) for x in norm(w.word)]
