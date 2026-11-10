@@ -105,5 +105,6 @@
         [['Pulihkan',()=>begin(p)],['Abaikan',()=>{ hold=false; barHide(); }]]);
     }
   }catch(e){}
+  ['pointerup','keyup','change'].forEach(ev=>addEventListener(ev,()=>setTimeout(()=>{ if(!(busy||drag||rg||phd)) push(); },120),true));      // commit right after each user action; the timer above is only a fallback
   window.MABHist={undo,redo,push,project,build};
 })();
